@@ -13,8 +13,18 @@ const STORAGE_KEY_SETTINGS = 'ruby_text_player_settings_v1';
 const STORAGE_KEY_DELETED_IDS = 'ruby_text_player_deleted_ids_v1';
 
 function getLangConfig(langId) {
-  if (langId && LANG_CATALOG[langId]) return LANG_CATALOG[langId];
-  return LANG_CATALOG['zh-TW'];
+  const base = (langId && LANG_CATALOG[langId]) ? LANG_CATALOG[langId] : LANG_CATALOG['zh-TW'];
+  if (typeof state !== 'undefined' && state.uiLang === 'en' && base.en) {
+    return {
+      ...base,
+      ...base.en,
+      sample: base.sample ? {
+        ...base.sample,
+        note: base.sample.noteEn || base.sample.note
+      } : base.sample
+    };
+  }
+  return base;
 }
 
 function getEffectiveTapMode() {
@@ -64,6 +74,7 @@ const state = {
   pendingConflict: null,
 
   // 永続化される設定
+  uiLang: (typeof navigator !== 'undefined' && /^ja\b/i.test(navigator.language || '')) ? 'ja' : 'en', // 'ja' | 'en'
   theme: 'auto',         // 'auto' | 'light' | 'dark'
   fontSize: 'm',         // 's' | 'm' | 'l'
   showZhuyin: true,
@@ -88,13 +99,14 @@ const state = {
 };
 
 // ============================================================================
-// 3. 設定の読み書き・テーマ反映
+// 3. 設定の読み書き・UI言語・テーマ反映
 // ============================================================================
 function loadSettings() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_SETTINGS);
     if (raw) {
       const s = JSON.parse(raw);
+      if (s.uiLang === 'ja' || s.uiLang === 'en') state.uiLang = s.uiLang;
       if (s.theme) state.theme = s.theme;
       if (s.fontSize) state.fontSize = s.fontSize;
       if (typeof s.showZhuyin === 'boolean') state.showZhuyin = s.showZhuyin;
@@ -122,6 +134,7 @@ function loadSettings() {
     if (Array.isArray(del)) state.deletedIds = new Set(del);
   } catch (e) {}
 
+  applyUiLanguage(false);
   applyTheme();
   applyFontSize();
   syncControlsUI();
@@ -130,6 +143,7 @@ function loadSettings() {
 function saveSettings() {
   try {
     localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify({
+      uiLang: state.uiLang,
       theme: state.theme,
       fontSize: state.fontSize,
       showZhuyin: state.showZhuyin,
@@ -142,6 +156,67 @@ function saveSettings() {
       hintDismissed: state.hintDismissed
     }));
   } catch (e) {}
+}
+
+function applyUiLanguage(refreshViews = true) {
+  const lang = state.uiLang === 'en' ? 'en' : 'ja';
+  if (typeof UI_TEXT_I18N !== 'undefined' && UI_TEXT_I18N[lang]) {
+    UI_TEXT = UI_TEXT_I18N[lang];
+  }
+  if (typeof document === 'undefined') return;
+
+  document.documentElement.lang = lang;
+
+  const htmlDict = (typeof HTML_I18N !== 'undefined' && HTML_I18N[lang]) ? HTML_I18N[lang] : null;
+  if (htmlDict) {
+    if (htmlDict.pageTitle) document.title = htmlDict.pageTitle;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.dataset.i18n;
+      if (k && htmlDict[k] !== undefined) el.textContent = htmlDict[k];
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const k = el.dataset.i18nTitle;
+      if (k && htmlDict[k] !== undefined) el.setAttribute('title', htmlDict[k]);
+    });
+    document.querySelectorAll('[data-i18n-aria]').forEach(el => {
+      const k = el.dataset.i18nAria;
+      if (k && htmlDict[k] !== undefined) el.setAttribute('aria-label', htmlDict[k]);
+    });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+      const k = el.dataset.i18nPlaceholder;
+      if (k && htmlDict[k] !== undefined) el.setAttribute('placeholder', htmlDict[k]);
+    });
+  }
+
+  // 初期サンプル（未編集のまま残っている場合）もUI言語に合わせて日本語版・英語版を自動切替
+  if (Array.isArray(state.songs) && state.songs.length > 0 && typeof getDefaultSampleByUiLang === 'function') {
+    const defIdx = state.songs.findIndex(s => s && s.id === 'text_default_sample');
+    if (defIdx !== -1) {
+      const norm = (str) => String(str || '').replace(/\r\n/g, '\n').trim();
+      const curRaw = norm(state.songs[defIdx].rawText);
+      if (curRaw === norm(DEFAULT_RAW_TEXT) || curRaw === norm(DEFAULT_RAW_TEXT_EN)) {
+        const nextDef = getDefaultSampleByUiLang(lang);
+        state.songs[defIdx] = {
+          ...state.songs[defIdx],
+          title: nextDef.title,
+          artist: nextDef.artist,
+          rawText: nextDef.rawText
+        };
+        songSummaryCache.delete('text_default_sample');
+        saveLibraryToStorage();
+      }
+    }
+  }
+
+  syncControlsUI();
+
+  if (refreshViews) {
+    if (state.songs.length > 0) loadCurrentSong();
+    if (activeSheetId === 'songsSheet') renderLibraryList();
+    if (activeSheetId === 'promptSheet') updateGeneratedPrompt();
+    if (activeSheetId === 'editorSheet') updateEditorLiveStatus(false);
+    updatePlayAllButton();
+  }
 }
 
 function applyTheme() {
@@ -159,6 +234,13 @@ function applyFontSize() {
 }
 
 function syncControlsUI() {
+  document.querySelectorAll('[data-action="set-ui-lang"]').forEach(btn => {
+    btn.setAttribute('aria-pressed', String(btn.dataset.value === state.uiLang));
+  });
+  const quickLangBtn = document.getElementById('btnQuickUiLang');
+  if (quickLangBtn) {
+    quickLangBtn.textContent = state.uiLang === 'en' ? 'EN' : 'JA';
+  }
   document.querySelectorAll('[data-action="set-theme"]').forEach(btn => {
     btn.setAttribute('aria-pressed', String(btn.dataset.value === state.theme));
   });
@@ -258,7 +340,7 @@ function initLibrary() {
     }
   } catch (e) {}
 
-  const legacyDefaultIds = new Set(['song_default_1', 'song_default_easyweeds_spring', 'song_default_molihua']);
+  const legacyDefaultIds = new Set(['song_default_1', 'song_default_easyweeds_spring', 'song_default_molihua', 'song_default_arirang']);
   localSongs = localSongs.filter(s => s && s.id && !legacyDefaultIds.has(s.id));
 
   const dedupedList = [];
@@ -279,9 +361,13 @@ function initLibrary() {
     }
   });
 
+  const embeddedList = (typeof getDefaultSampleByUiLang === 'function')
+    ? [getDefaultSampleByUiLang(state.uiLang)]
+    : (Array.isArray(EMBEDDED_SONGS) ? EMBEDDED_SONGS : []);
+
   let newlyAddedId = null;
-  if (Array.isArray(EMBEDDED_SONGS)) {
-    EMBEDDED_SONGS.forEach(emb => {
+  if (Array.isArray(embeddedList)) {
+    embeddedList.forEach(emb => {
       if (!emb || !emb.id) return;
       const embKey = getSongIdentityKey(emb.title, emb.artist, emb.rawText);
       if (state.deletedIds.has(emb.id) || state.deletedIds.has(embKey)) return;
@@ -296,8 +382,26 @@ function initLibrary() {
   }
 
   state.songs = dedupedList.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  if (state.songs.length === 0 && Array.isArray(EMBEDDED_SONGS) && EMBEDDED_SONGS.length > 0) {
-    state.songs = [{ ...EMBEDDED_SONGS[0] }];
+  if (state.songs.length === 0 && embeddedList.length > 0) {
+    state.songs = [{ ...embeddedList[0] }];
+  }
+
+  // 初期サンプルが未編集で残っている場合は現在のUI言語に合わせて同期
+  if (typeof getDefaultSampleByUiLang === 'function') {
+    const defIdx = state.songs.findIndex(s => s && s.id === 'text_default_sample');
+    if (defIdx !== -1) {
+      const norm = (str) => String(str || '').replace(/\r\n/g, '\n').trim();
+      const curRaw = norm(state.songs[defIdx].rawText);
+      if (curRaw === norm(DEFAULT_RAW_TEXT) || curRaw === norm(DEFAULT_RAW_TEXT_EN)) {
+        const nextDef = getDefaultSampleByUiLang(state.uiLang);
+        state.songs[defIdx] = {
+          ...state.songs[defIdx],
+          title: nextDef.title,
+          artist: nextDef.artist,
+          rawText: nextDef.rawText
+        };
+      }
+    }
   }
 
   let savedActiveId = null;
@@ -1701,15 +1805,16 @@ function renderLibraryList() {
 
 function buildFormattedSongText(song) {
   let body = String(song.rawText || '').trim();
+  const isEn = state.uiLang === 'en';
   const headers = [];
   if (!/^【(?:言語|Language|Lang)】/im.test(body)) {
     const summary = getSongSummary(song);
     if (summary && summary.detectedLang) {
-      headers.push(`【言語】${summary.detectedLang}`);
+      headers.push(isEn ? `【Language】${summary.detectedLang}` : `【言語】${summary.detectedLang}`);
     }
   }
-  if (song.title && !/^【(?:タイトル|曲名|Title)】/im.test(body)) headers.push(`【タイトル】${song.title}`);
-  if (song.artist && !/^【(?:出典|著者|作者|歌手|アーティスト|Artist|Author|Source)】/im.test(body)) headers.push(`【出典】${song.artist}`);
+  if (song.title && !/^【(?:タイトル|曲名|Title)】/im.test(body)) headers.push(isEn ? `【Title】${song.title}` : `【タイトル】${song.title}`);
+  if (song.artist && !/^【(?:出典|著者|作者|歌手|アーティスト|Artist|Author|Source)】/im.test(body)) headers.push(isEn ? `【Source】${song.artist}` : `【出典】${song.artist}`);
   if (song.url && !/^【(?:URL|リンク|Link|参考URL)】/im.test(body)) headers.push(`【URL】${song.url}`);
   return headers.length > 0 ? `${headers.join('\n')}\n\n${body}` : body;
 }
@@ -1825,16 +1930,17 @@ function isSameSongContent(songA, songB) {
 
 function replaceOrPrependTitleInRawText(rawText, newTitle) {
   const normalized = String(rawText || '').replace(/\r\n/g, '\n').trim();
-  const titleTagRegex = /^【(?:タイトル|曲名|Title)】\s*.+$/im;
+  const titleTagRegex = /^【(タイトル|曲名|Title)】\s*.+$/im;
   if (titleTagRegex.test(normalized)) {
-    return normalized.replace(titleTagRegex, `【タイトル】${newTitle}`);
+    return normalized.replace(titleTagRegex, (_, tag) => `【${tag}】${newTitle}`);
   }
+  const titleTag = state.uiLang === 'en' ? 'Title' : 'タイトル';
   const langLineMatch = normalized.match(/^(【(?:言語|Language|Lang)】\s*.+)\n?/i);
   if (langLineMatch) {
     const rest = normalized.slice(langLineMatch[0].length).replace(/^\n+/, '');
-    return `${langLineMatch[1]}\n【タイトル】${newTitle}\n${rest}`;
+    return `${langLineMatch[1]}\n【${titleTag}】${newTitle}\n${rest}`;
   }
-  return `【タイトル】${newTitle}\n\n${normalized}`;
+  return `【${titleTag}】${newTitle}\n\n${normalized}`;
 }
 
 function generateDisambiguatedTitleAndRaw(baseTitle, artist, rawText, lang, currentSongs) {
@@ -2027,7 +2133,8 @@ function formatMergeSummary({ added, updated, skipped, renamed = 0 }) {
   }
   if (updated > 0) parts.push(UI_TEXT.mergeSummaryUpdated(updated));
   if (skipped > 0) parts.push(UI_TEXT.mergeSummarySkipped(skipped));
-  return parts.join('・') || UI_TEXT.mergeSummaryNoChange;
+  const sep = state.uiLang === 'en' ? ' / ' : '・';
+  return parts.join(sep) || UI_TEXT.mergeSummaryNoChange;
 }
 
 function openConflictDialog({ items, conflicts, newCount = 0, returnSheetId = null, sourceType = 'import', editingSongId = null }) {
@@ -2627,7 +2734,7 @@ function importLibraryJson(file) {
 // ============================================================================
 function updateGeneratedPrompt() {
   const userLyrics = document.getElementById('promptSourceLyrics').value;
-  document.getElementById('promptPreviewBox').value = buildPromptText(state.promptLangMode, userLyrics);
+  document.getElementById('promptPreviewBox').value = buildPromptText(state.promptLangMode, userLyrics, state.uiLang);
 }
 
 // ============================================================================
@@ -2859,13 +2966,31 @@ function setupEvents() {
         tIn.value = '';
         aIn.value = '';
         uIn.value = '';
-        document.getElementById('rawLyricsInput').value = DEFAULT_RAW_TEXT;
+        document.getElementById('rawLyricsInput').value = (state.uiLang === 'en' && typeof DEFAULT_RAW_TEXT_EN === 'string')
+          ? DEFAULT_RAW_TEXT_EN
+          : DEFAULT_RAW_TEXT;
         updateEditorLiveStatus(true);
         break;
       }
       case 'save-song':
         saveSongFromEditor();
         break;
+      case 'set-ui-lang': {
+        const nextLang = actEl.dataset.value === 'en' ? 'en' : 'ja';
+        if (state.uiLang !== nextLang) {
+          state.uiLang = nextLang;
+          saveSettings();
+          applyUiLanguage(true);
+        }
+        break;
+      }
+      case 'cycle-ui-lang': {
+        state.uiLang = state.uiLang === 'en' ? 'ja' : 'en';
+        saveSettings();
+        applyUiLanguage(true);
+        showToast(state.uiLang === 'en' ? 'Language: English' : '表示言語：日本語');
+        break;
+      }
       case 'set-prompt-lang':
         state.promptLangMode = actEl.dataset.value;
         document.querySelectorAll('[data-action="set-prompt-lang"]').forEach(b => {

@@ -60,29 +60,31 @@
        ====================================================================== -->
   <header class="appbar">
     <div class="container appbar-inner">
-      <button type="button" class="song-switch" data-action="open-sheet" data-sheet="songsSheet" title="テキストを切り替える">
+      <button type="button" class="song-switch" data-action="open-sheet" data-sheet="songsSheet" data-i18n-title="switchSongTitle" title="テキストを切り替える">
         <span id="headerRegionBadge" class="lang-badge">韓</span>
         <span class="song-meta">
-          <span id="headerSongTitle" class="song-title">아리랑 (Arirang)</span>
-          <span id="headerSongArtist" class="song-artist">韓国伝統民謡 (Korean Traditional Folksong)</span>
+          <span id="headerSongTitle" class="song-title">첫인사와 자기소개 (初めての挨拶と自己紹介)</span>
+          <span id="headerSongArtist" class="song-artist">韓国語日常会話</span>
         </span>
         <svg class="icon sm chev"><use href="#i-chev-down"/></svg>
       </button>
 
-      <span id="offlinePill" class="offline-pill" hidden title="オフラインで動作中（学習・再生・保存すべて利用可能）">
+      <span id="offlinePill" class="offline-pill" hidden data-i18n-title="offlineTitle" title="オフラインで動作中（学習・再生・保存すべて利用可能）">
         <svg class="icon sm"><use href="#i-wifi-off"/></svg>
-        <span>オフライン</span>
+        <span data-i18n="offlineLabel">オフライン</span>
       </span>
 
-      <a id="songRefUrlBtn" href="#" target="_blank" rel="noopener noreferrer" class="icon-btn" hidden title="参考リンクを開く" aria-label="参考リンクを開く">
+      <a id="songRefUrlBtn" href="#" target="_blank" rel="noopener noreferrer" class="icon-btn" hidden data-i18n-title="refUrlTitle" data-i18n-aria="refUrlTitle" title="参考リンクを開く" aria-label="参考リンクを開く">
         <svg class="icon"><use href="#i-external"/></svg>
       </a>
 
-      <button type="button" class="icon-btn" data-action="new-song" title="新しいテキストを追加" aria-label="新しいテキストを追加">
+      <button type="button" id="btnQuickUiLang" class="chip" data-action="cycle-ui-lang" title="表示言語を切り替え / Switch UI Language" style="min-width:38px; height:32px; padding:0 8px; font-size:12px;">JA</button>
+
+      <button type="button" class="icon-btn" data-action="new-song" data-i18n-title="newSongTitle" data-i18n-aria="newSongTitle" title="新しいテキストを追加" aria-label="新しいテキストを追加">
         <svg class="icon"><use href="#i-plus"/></svg>
       </button>
 
-      <button type="button" class="icon-btn" data-action="open-sheet" data-sheet="menuSheet" title="メニュー" aria-label="メニュー">
+      <button type="button" class="icon-btn" data-action="open-sheet" data-sheet="menuSheet" data-i18n-title="menuTitle" data-i18n-aria="menuTitle" title="メニュー" aria-label="メニュー">
         <svg class="icon"><use href="#i-more"/></svg>
       </button>
     </div>
@@ -94,8 +96,8 @@
   <main class="container">
     <div id="firstHint" class="first-hint" hidden>
       <svg class="icon sm"><use href="#i-volume"/></svg>
-      <span>テキストの単語をタップすると発音と意味が表示されます。下のバーから全行再生や表示設定ができます。</span>
-      <button type="button" class="icon-btn sm" data-action="dismiss-hint" aria-label="ヒントを閉じる">
+      <span data-i18n="firstHintText">テキストの単語をタップすると発音と意味が表示されます。下のバーから全行再生や表示設定ができます。</span>
+      <button type="button" class="icon-btn sm" data-action="dismiss-hint" data-i18n-aria="dismissHintAria" aria-label="ヒントを閉じる">
         <svg class="icon sm"><use href="#i-close"/></svg>
       </button>
     </div>
@@ -106,34 +108,34 @@
   <!-- ======================================================================
        下部プレイヤーバー（片手操作）
        ====================================================================== -->
-  <nav class="player" aria-label="再生・表示コントロール">
+  <nav class="player" data-i18n-aria="playerNavAria" aria-label="再生・表示コントロール">
     <div class="player-inner">
-      <button type="button" class="icon-btn" data-action="prev-line" title="前の行 (↑ / K)" aria-label="前の行">
+      <button type="button" class="icon-btn" data-action="prev-line" data-i18n-title="prevLineTitle" data-i18n-aria="prevLineTitle" title="前の行 (↑ / K)" aria-label="前の行">
         <svg class="icon"><use href="#i-prev"/></svg>
       </button>
 
-      <button type="button" id="btnPlayAll" class="play-main" data-action="toggle-play-all" title="全行再生 / 停止 (Space)" aria-label="全行再生">
+      <button type="button" id="btnPlayAll" class="play-main" data-action="toggle-play-all" data-i18n-title="playAllTitle" title="全行再生 / 停止 (Space)" aria-label="全行再生">
         <svg class="icon fill"><use id="iconPlayAll" href="#i-play"/></svg>
       </button>
 
-      <button type="button" class="icon-btn" data-action="next-line" title="次の行 (↓ / J)" aria-label="次の行">
+      <button type="button" class="icon-btn" data-action="next-line" data-i18n-title="nextLineTitle" data-i18n-aria="nextLineTitle" title="次の行 (↓ / J)" aria-label="次の行">
         <svg class="icon"><use href="#i-next"/></svg>
       </button>
 
       <div class="player-status">
         <span id="playerNowText" class="now" dir="auto">単語をタップして発音</span>
-        <span id="playerSubText" class="sub">全4行</span>
+        <span id="playerSubText" class="sub">1 / 3 行</span>
       </div>
 
-      <button type="button" id="btnSpeed" class="chip" data-action="cycle-speed" title="読み上げ速度">1.0x</button>
+      <button type="button" id="btnSpeed" class="chip" data-action="cycle-speed" data-i18n-title="speedTitle" title="読み上げ速度">1.0x</button>
 
       <div class="divider"></div>
 
-      <button type="button" class="icon-btn" data-action="toggle-all-notes" title="全行の解説を開閉" aria-label="全行の解説を開閉">
+      <button type="button" class="icon-btn" data-action="toggle-all-notes" data-i18n-title="toggleAllNotesTitle" data-i18n-aria="toggleAllNotesTitle" title="全行の解説を開閉" aria-label="全行の解説を開閉">
         <svg class="icon"><use href="#i-expand"/></svg>
       </button>
 
-      <button type="button" class="icon-btn" data-action="open-sheet" data-sheet="displaySheet" title="表示・音声設定" aria-label="表示・音声設定">
+      <button type="button" class="icon-btn" data-action="open-sheet" data-sheet="displaySheet" data-i18n-title="displaySheetBtnTitle" data-i18n-aria="displaySheetBtnTitle" title="表示・音声設定" aria-label="表示・音声設定">
         <svg class="icon"><use href="#i-sliders"/></svg>
       </button>
     </div>
@@ -157,37 +159,43 @@
     <div class="sheet-backdrop" data-action="close-sheet"></div>
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="displaySheetTitle">
       <div class="sheet-head">
-        <h2 id="displaySheetTitle">表示・音声設定</h2>
-        <button type="button" class="icon-btn sm" data-action="close-sheet" aria-label="閉じる">
+        <h2 id="displaySheetTitle" data-i18n="displaySheetTitle">表示・音声設定</h2>
+        <button type="button" class="icon-btn sm" data-action="close-sheet" data-i18n-aria="closeAria" aria-label="閉じる">
           <svg class="icon"><use href="#i-close"/></svg>
         </button>
       </div>
       <div class="sheet-body">
-        <div class="section-label">外観テーマ</div>
+        <div class="section-label" data-i18n="uiLangSection">表示言語 / UI Language</div>
+        <div class="segmented" role="group" aria-label="UI Language">
+          <button type="button" data-action="set-ui-lang" data-value="ja" aria-pressed="true">日本語</button>
+          <button type="button" data-action="set-ui-lang" data-value="en" aria-pressed="false">English</button>
+        </div>
+
+        <div class="section-label" data-i18n="themeSection">外観テーマ</div>
         <div class="segmented" role="group" aria-label="外観テーマ">
-          <button type="button" data-action="set-theme" data-value="auto" aria-pressed="true">自動</button>
+          <button type="button" data-action="set-theme" data-value="auto" aria-pressed="true" data-i18n="themeAuto">自動</button>
           <button type="button" data-action="set-theme" data-value="light" aria-pressed="false">
-            <svg class="icon sm"><use href="#i-sun"/></svg>ライト
+            <svg class="icon sm"><use href="#i-sun"/></svg><span data-i18n="themeLight">ライト</span>
           </button>
           <button type="button" data-action="set-theme" data-value="dark" aria-pressed="false">
-            <svg class="icon sm"><use href="#i-moon"/></svg>ダーク
+            <svg class="icon sm"><use href="#i-moon"/></svg><span data-i18n="themeDark">ダーク</span>
           </button>
         </div>
 
-        <div class="section-label">文字サイズ</div>
+        <div class="section-label" data-i18n="fontSizeSection">文字サイズ</div>
         <div class="segmented" role="group" aria-label="文字サイズ">
-          <button type="button" data-action="set-font" data-value="s" aria-pressed="false">小</button>
-          <button type="button" data-action="set-font" data-value="m" aria-pressed="true">標準</button>
-          <button type="button" data-action="set-font" data-value="l" aria-pressed="false">大</button>
+          <button type="button" data-action="set-font" data-value="s" aria-pressed="false" data-i18n="fontSmall">小</button>
+          <button type="button" data-action="set-font" data-value="m" aria-pressed="true" data-i18n="fontMedium">標準</button>
+          <button type="button" data-action="set-font" data-value="l" aria-pressed="false" data-i18n="fontLarge">大</button>
         </div>
 
-        <div class="section-label">テキストタップ時の単位</div>
+        <div class="section-label" data-i18n="tapUnitSection">テキストタップ時の単位</div>
         <div class="segmented" role="group" aria-label="タップ単位">
-          <button type="button" data-action="set-tap" data-value="word" aria-pressed="true">単語ごと</button>
-          <button type="button" data-action="set-tap" data-value="char" aria-pressed="false">1文字ごと</button>
+          <button type="button" data-action="set-tap" data-value="word" aria-pressed="true" data-i18n="tapWord">単語ごと</button>
+          <button type="button" data-action="set-tap" data-value="char" aria-pressed="false" data-i18n="tapChar">1文字ごと</button>
         </div>
 
-        <div class="section-label">表示項目</div>
+        <div class="section-label" data-i18n="displayItemsSection">表示項目</div>
         <div>
           <div class="switch-row">
             <div>
@@ -205,14 +213,14 @@
           </div>
           <div class="switch-row">
             <div>
-              <div class="label">日本語訳</div>
-              <div class="desc">テキストの和訳</div>
+              <div class="label" data-i18n="transLabel">翻訳・意味行</div>
+              <div class="desc" data-i18n="transDesc">テキストの日本語訳・英語訳</div>
             </div>
             <button type="button" id="swTrans" class="switch" role="switch" aria-checked="true" data-action="toggle-display" data-target="trans"></button>
           </div>
         </div>
 
-        <div class="section-label">読み上げ音声（Web Speech API）</div>
+        <div class="section-label" data-i18n="ttsSection">読み上げ音声（Web Speech API）</div>
         <div class="field">
           <select id="voiceSelect" class="select" aria-label="読み上げ音声の選択">
             <option value="">端末の音声を読み込み中...</option>
@@ -220,7 +228,7 @@
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px;">
             <span id="voiceHintText" class="hint">※韓国語（ko-KR）の音声が最優先で選ばれます</span>
             <button type="button" class="btn sm" data-action="test-voice">
-              <svg class="icon sm"><use href="#i-volume"/></svg>試聴
+              <svg class="icon sm"><use href="#i-volume"/></svg><span data-i18n="testVoiceBtn">試聴</span>
             </button>
           </div>
         </div>
@@ -235,8 +243,8 @@
     <div class="sheet-backdrop" data-action="close-sheet"></div>
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="menuSheetTitle">
       <div class="sheet-head">
-        <h2 id="menuSheetTitle">メニュー</h2>
-        <button type="button" class="icon-btn sm" data-action="close-sheet" aria-label="閉じる">
+        <h2 id="menuSheetTitle" data-i18n="menuSheetTitle">メニュー</h2>
+        <button type="button" class="icon-btn sm" data-action="close-sheet" data-i18n-aria="closeAria" aria-label="閉じる">
           <svg class="icon"><use href="#i-close"/></svg>
         </button>
       </div>
@@ -244,20 +252,20 @@
         <div class="menu-list">
           <button type="button" class="menu-item" data-action="edit-current-song">
             <svg class="icon"><use href="#i-edit"/></svg>
-            <span>このテキストを編集</span>
+            <span data-i18n="menuEditCurrent">このテキストを編集</span>
           </button>
           <button type="button" class="menu-item" data-action="copy-current-song">
             <svg class="icon"><use href="#i-copy"/></svg>
             <span>
-              このテキストをコピー
-              <span class="sub">1件だけLINE等で共有するときに便利</span>
+              <span data-i18n="menuCopyCurrent">このテキストをコピー</span>
+              <span class="sub" data-i18n="menuCopyCurrentSub">1件だけLINE等で共有するときに便利</span>
             </span>
           </button>
           <button type="button" class="menu-item" data-action="share-current-song" data-share-support="text" hidden>
             <svg class="icon"><use href="#i-share"/></svg>
             <span>
-              このテキストを共有
-              <span class="sub">OSの共有シートでLINE・メモ帳等へ直接送る</span>
+              <span data-i18n="menuShareCurrent">このテキストを共有</span>
+              <span class="sub" data-i18n="menuShareCurrentSub">OSの共有シートでLINE・メモ帳等へ直接送る</span>
             </span>
           </button>
 
@@ -266,15 +274,15 @@
           <button type="button" class="menu-item" data-action="open-sheet" data-sheet="songsSheet">
             <svg class="icon"><use href="#i-library"/></svg>
             <span>
-              マイライブラリ・共有
+              <span data-i18n="menuLibrary">マイライブラリ・共有</span>
               <span id="menuSongCountSub" class="sub">全1件 • 複数選択書き出し / バックアップ</span>
             </span>
           </button>
           <button type="button" class="menu-item" data-action="open-sheet" data-sheet="promptSheet">
             <svg class="icon"><use href="#i-sparkle"/></svg>
             <span>
-              AI変換用プロンプトを作成
-              <span class="sub">Gemini / ChatGPTで外国語テキストから教材を作成</span>
+              <span data-i18n="menuPrompt">AI変換用プロンプトを作成</span>
+              <span class="sub" data-i18n="menuPromptSub">Gemini / ChatGPTで外国語テキストから教材を作成</span>
             </span>
           </button>
         </div>
@@ -290,10 +298,10 @@
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="songsSheetTitle">
       <div class="sheet-head">
         <div>
-          <h2 id="songsSheetTitle">マイライブラリ</h2>
-          <p>テキストの切り替えや、複数件を選んでファイル共有・バックアップができます。</p>
+          <h2 id="songsSheetTitle" data-i18n="songsSheetTitle">マイライブラリ</h2>
+          <p data-i18n="songsSheetSub">テキストの切り替えや、複数件を選んでファイル共有・バックアップができます。</p>
         </div>
-        <button type="button" class="icon-btn sm" data-action="close-sheet" aria-label="閉じる">
+        <button type="button" class="icon-btn sm" data-action="close-sheet" data-i18n-aria="closeAria" aria-label="閉じる">
           <svg class="icon"><use href="#i-close"/></svg>
         </button>
       </div>
@@ -308,20 +316,20 @@
         </div>
         <div id="libraryListContainer" class="song-list"></div>
 
-        <div class="section-label">バックアップ・ファイル入出力</div>
+        <div class="section-label" data-i18n="backupSection">バックアップ・ファイル入出力</div>
         <div class="stack">
           <div class="card">
             <div class="text">
-              <div class="title">JSONバックアップ</div>
-              <div class="desc">全テキストデータの書き出し・読み込み（別端末への移行やバックアップに）</div>
+              <div class="title" data-i18n="jsonBackupTitle">JSONバックアップ</div>
+              <div class="desc" data-i18n="jsonBackupDesc">全テキストデータの書き出し・読み込み（別端末への移行やバックアップに）</div>
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:6px; flex-shrink:0;">
               <button type="button" class="btn sm" data-action="share-json" data-share-support="file" hidden>
-                <svg class="icon sm"><use href="#i-share"/></svg>共有
+                <svg class="icon sm"><use href="#i-share"/></svg><span data-i18n="shareBtn">共有</span>
               </button>
-              <button type="button" class="btn sm" data-action="export-json">書き出し</button>
+              <button type="button" class="btn sm" data-action="export-json" data-i18n="exportJsonBtn">書き出し</button>
               <label class="btn sm" style="cursor:pointer;">
-                読み込み
+                <span data-i18n="importJsonBtn">読み込み</span>
                 <input id="jsonFileInput" type="file" accept=".json" hidden>
               </label>
             </div>
@@ -331,11 +339,11 @@
 
       <div id="songsFootNormal" class="sheet-foot">
         <button type="button" class="btn primary block" data-action="new-song">
-          <svg class="icon sm"><use href="#i-plus"/></svg>新しいテキストを追加
+          <svg class="icon sm"><use href="#i-plus"/></svg><span data-i18n="newSongBtn">新しいテキストを追加</span>
         </button>
       </div>
       <div id="songsFootSelect" class="sheet-foot" hidden>
-        <button type="button" class="btn ghost" data-action="toggle-select-mode">キャンセル</button>
+        <button type="button" class="btn ghost" data-action="toggle-select-mode" data-i18n="cancelBtn">キャンセル</button>
         <div class="spacer"></div>
         <button type="button" id="btnShareSelectedJson" class="btn" data-action="share-selected-json" data-share-support="file" hidden>
           <svg class="icon sm"><use href="#i-share"/></svg>
@@ -357,7 +365,7 @@
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="editorModalTitle">
       <div class="sheet-head">
         <h2 id="editorModalTitle">新しいテキストを追加</h2>
-        <button type="button" class="icon-btn sm" data-action="close-sheet" aria-label="閉じる">
+        <button type="button" class="icon-btn sm" data-action="close-sheet" data-i18n-aria="closeAria" aria-label="閉じる">
           <svg class="icon"><use href="#i-close"/></svg>
         </button>
       </div>
@@ -366,42 +374,42 @@
         <div id="editorSingleMetaFields" class="stack">
           <div class="grid-2">
             <div class="field">
-              <label for="songTitleInput">タイトル <span class="hint">（【タイトル】から自動入力）</span></label>
-              <input id="songTitleInput" class="input" type="text" placeholder="例：아리랑 (Arirang)">
+              <label for="songTitleInput"><span data-i18n="songTitleLabel">タイトル</span> <span class="hint" data-i18n="songTitleHint">（【タイトル】から自動入力）</span></label>
+              <input id="songTitleInput" class="input" type="text" data-i18n-placeholder="songTitlePlaceholder" placeholder="例：첫인사와 자기소개 (初めての挨拶と自己紹介)">
             </div>
             <div class="field">
-              <label for="songArtistInput">出典・著者名 <span class="hint">（任意）</span></label>
-              <input id="songArtistInput" class="input" type="text" placeholder="例：韓国伝統民謡 (Korean Traditional Folksong)">
+              <label for="songArtistInput"><span data-i18n="songArtistLabel">出典・著者名</span> <span class="hint" data-i18n="songArtistHint">（任意）</span></label>
+              <input id="songArtistInput" class="input" type="text" data-i18n-placeholder="songArtistPlaceholder" placeholder="例：韓国語日常会話">
             </div>
           </div>
 
           <div class="field">
-            <label for="songUrlInput">参考URL <span class="hint">（任意・記事や動画のリンク等）</span></label>
+            <label for="songUrlInput"><span data-i18n="songUrlLabel">参考URL</span> <span class="hint" data-i18n="songUrlHint">（任意・記事や動画のリンク等）</span></label>
             <input id="songUrlInput" class="input" type="url" placeholder="https://...">
           </div>
         </div>
 
         <div class="field">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-            <label for="rawLyricsInput" style="margin:0;">学習テキスト素材 <span class="hint">（【言語】タグ・多言語ルビ対応）</span></label>
+            <label for="rawLyricsInput" style="margin:0;"><span data-i18n="rawLyricsLabel">学習テキスト素材</span> <span class="hint" data-i18n="rawLyricsHint">（【言語】タグ・多言語ルビ対応）</span></label>
             <div style="display:flex; align-items:center; gap:4px;">
-              <button type="button" class="btn sm" data-action="paste-clipboard" style="height:28px; padding:0 10px;" title="クリップボードから貼り付け">
-                <svg class="icon sm"><use href="#i-clipboard"/></svg>貼り付け
+              <button type="button" class="btn sm" data-action="paste-clipboard" style="height:28px; padding:0 10px;" data-i18n-title="pasteBtnTitle" title="クリップボードから貼り付け">
+                <svg class="icon sm"><use href="#i-clipboard"/></svg><span data-i18n="pasteBtn">貼り付け</span>
               </button>
               <button type="button" class="btn sm ghost" data-action="open-sheet" data-sheet="promptSheet" style="height:28px; padding:0 8px; color:var(--accent);">
-                <svg class="icon sm"><use href="#i-sparkle"/></svg>AI用プロンプト
+                <svg class="icon sm"><use href="#i-sparkle"/></svg><span data-i18n="aiPromptShortBtn">AI用プロンプト</span>
               </button>
             </div>
           </div>
-          <textarea id="rawLyricsInput" class="textarea" rows="10" placeholder="【言語】ko-KR&#10;【タイトル】아리랑 (Arirang)&#10;【出典】韓国伝統民謡 (Korean Traditional Folksong)&#10;&#10;아리랑(아리랑) 아리랑(아리랑) 아라리요(아라리요)&#10;arirang arirang arariyo&#10;アリラン、アリラン、アラリヨ。&#10;&#10;【単語・文法解説】&#10;- 아리랑 (아리랑 / arirang)：アリラン（固有の民謡名・リフレイン）。"></textarea>
+          <textarea id="rawLyricsInput" class="textarea" rows="10" data-i18n-placeholder="rawLyricsPlaceholder" placeholder="【言語】ko-KR&#10;【タイトル】첫인사와 자기소개 (初めての挨拶と自己紹介)&#10;【出典】韓国語日常会話&#10;&#10;안녕하세요(안녕하세요) 만나서(만나서) 반갑습니다(반갑씀니다).&#10;annyeonghaseyo mannaseo bangapseumnida.&#10;こんにちは、お会いできて嬉しいです。&#10;&#10;【単語・文法解説】&#10;- 안녕하세요 (안녕하세요 / annyeonghaseyo)：こんにちは（挨拶表現）。"></textarea>
           <div id="editorParseStatus" class="parse-status"></div>
         </div>
       </div>
 
       <div class="sheet-foot">
-        <button type="button" class="btn sm" data-action="fill-sample">見本を入れる</button>
+        <button type="button" class="btn sm" data-action="fill-sample" data-i18n="fillSampleBtn">見本を入れる</button>
         <div class="spacer"></div>
-        <button type="button" class="btn ghost" data-action="close-sheet">キャンセル</button>
+        <button type="button" class="btn ghost" data-action="close-sheet" data-i18n="cancelBtn">キャンセル</button>
         <button type="button" id="btnSaveSong" class="btn primary" data-action="save-song">保存して開く</button>
       </div>
     </div>
@@ -415,45 +423,45 @@
     <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="promptSheetTitle">
       <div class="sheet-head">
         <div>
-          <h2 id="promptSheetTitle">AI変換用プロンプト</h2>
-          <p>GeminiやChatGPTに貼り付けると、このアプリ専用の学習データが作れます。</p>
+          <h2 id="promptSheetTitle" data-i18n="promptSheetTitle">AI変換用プロンプト</h2>
+          <p data-i18n="promptSheetSub">GeminiやChatGPTに貼り付けると、このアプリ専用の学習データが作れます。</p>
         </div>
-        <button type="button" class="icon-btn sm" data-action="close-sheet" aria-label="閉じる">
+        <button type="button" class="icon-btn sm" data-action="close-sheet" data-i18n-aria="closeAria" aria-label="閉じる">
           <svg class="icon"><use href="#i-close"/></svg>
         </button>
       </div>
 
       <div class="sheet-body stack">
         <div class="field">
-          <div class="field-label">1. テキストの言語を選択</div>
+          <div class="field-label" data-i18n="promptStep1">1. テキストの言語を選択</div>
           <div class="lang-chip-grid" role="group" aria-label="言語モード">
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="zh-TW" aria-pressed="true"><span class="chip-badge">華</span><span>華語（注音）</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="zh-CN" aria-pressed="false"><span class="chip-badge">中</span><span>中国語（簡体）</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="yue-HK" aria-pressed="false"><span class="chip-badge">粤</span><span>広東語（粤拼）</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="nan-TW" aria-pressed="false"><span class="chip-badge">台</span><span>台湾語（台羅）</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ko-KR" aria-pressed="false"><span class="chip-badge">韓</span><span>韓国語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ja-JP" aria-pressed="false"><span class="chip-badge">日</span><span>日本語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="en-US" aria-pressed="false"><span class="chip-badge">EN</span><span>英語（IPA）</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="de-DE" aria-pressed="false"><span class="chip-badge">DE</span><span>ドイツ語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="fr-FR" aria-pressed="false"><span class="chip-badge">FR</span><span>フランス語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="es-ES" aria-pressed="false"><span class="chip-badge">ES</span><span>スペイン語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ru-RU" aria-pressed="false"><span class="chip-badge">RU</span><span>ロシア語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ar-SA" aria-pressed="false"><span class="chip-badge">AR</span><span>アラビア語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="fa-IR" aria-pressed="false"><span class="chip-badge">FA</span><span>ペルシア語</span></button>
-            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="th-TH" aria-pressed="false"><span class="chip-badge">TH</span><span>タイ語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="zh-TW" aria-pressed="true"><span class="chip-badge">華</span><span data-i18n="chipZhTW">華語（注音）</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="zh-CN" aria-pressed="false"><span class="chip-badge">中</span><span data-i18n="chipZhCN">中国語（簡体）</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="yue-HK" aria-pressed="false"><span class="chip-badge">粤</span><span data-i18n="chipYueHK">広東語（粤拼）</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="nan-TW" aria-pressed="false"><span class="chip-badge">台</span><span data-i18n="chipNanTW">台湾語（台羅）</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ko-KR" aria-pressed="false"><span class="chip-badge">韓</span><span data-i18n="chipKoKR">韓国語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ja-JP" aria-pressed="false"><span class="chip-badge">日</span><span data-i18n="chipJaJP">日本語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="en-US" aria-pressed="false"><span class="chip-badge">EN</span><span data-i18n="chipEnUS">英語（IPA）</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="de-DE" aria-pressed="false"><span class="chip-badge">DE</span><span data-i18n="chipDeDE">ドイツ語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="fr-FR" aria-pressed="false"><span class="chip-badge">FR</span><span data-i18n="chipFrFR">フランス語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="es-ES" aria-pressed="false"><span class="chip-badge">ES</span><span data-i18n="chipEsES">スペイン語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ru-RU" aria-pressed="false"><span class="chip-badge">RU</span><span data-i18n="chipRuRU">ロシア語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="ar-SA" aria-pressed="false"><span class="chip-badge">AR</span><span data-i18n="chipArSA">アラビア語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="fa-IR" aria-pressed="false"><span class="chip-badge">FA</span><span data-i18n="chipFaIR">ペルシア語</span></button>
+            <button type="button" class="lang-chip" data-action="set-prompt-lang" data-value="th-TH" aria-pressed="false"><span class="chip-badge">TH</span><span data-i18n="chipThTH">タイ語</span></button>
           </div>
         </div>
 
         <div class="field">
-          <label for="promptSourceLyrics">2. 変換したい文章・タイトル <span class="hint">（空欄のままでもコピーできます）</span></label>
-          <textarea id="promptSourceLyrics" class="textarea" rows="4" style="font-family:var(--font-jp);" placeholder="ここに学習したい外国語の文章（ニュース・物語・日常会話・スピーチなど）を貼り付けると、下のプロンプトに自動で組み込まれます。"></textarea>
+          <label for="promptSourceLyrics"><span data-i18n="promptStep2">2. 変換したい文章・タイトル</span> <span class="hint" data-i18n="promptStep2Hint">（空欄のままでもコピーできます）</span></label>
+          <textarea id="promptSourceLyrics" class="textarea" rows="4" style="font-family:var(--font-jp);" data-i18n-placeholder="promptSourcePlaceholder" placeholder="ここに学習したい外国語の文章（ニュース・物語・日常会話・スピーチなど）を貼り付けると、下のプロンプトに自動で組み込まれます。"></textarea>
         </div>
 
         <div class="field">
           <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-            <label for="promptPreviewBox" style="margin:0;">3. 生成されたプロンプト</label>
-            <button type="button" class="btn sm" data-action="share-prompt" data-share-support="text" hidden style="height:28px; padding:0 10px;" title="OSの共有シートで他アプリへ送る">
-              <svg class="icon sm"><use href="#i-share"/></svg>共有
+            <label for="promptPreviewBox" style="margin:0;" data-i18n="promptStep3">3. 生成されたプロンプト</label>
+            <button type="button" class="btn sm" data-action="share-prompt" data-share-support="text" hidden style="height:28px; padding:0 10px;">
+              <svg class="icon sm"><use href="#i-share"/></svg><span data-i18n="shareBtn">共有</span>
             </button>
           </div>
           <textarea id="promptPreviewBox" class="textarea" rows="8" readonly></textarea>
@@ -461,13 +469,13 @@
       </div>
 
       <div class="sheet-foot">
-        <button type="button" class="btn ghost" data-action="close-sheet">閉じる</button>
+        <button type="button" class="btn ghost" data-action="close-sheet" data-i18n="closeBtn">閉じる</button>
         <div class="spacer"></div>
         <button type="button" class="btn" data-action="copy-prompt">
-          <svg class="icon sm"><use href="#i-copy"/></svg>コピーのみ
+          <svg class="icon sm"><use href="#i-copy"/></svg><span data-i18n="copyOnlyBtn">コピーのみ</span>
         </button>
         <button type="button" class="btn primary" data-action="copy-prompt-and-add">
-          <svg class="icon sm"><use href="#i-copy"/></svg>コピーしてテキスト追加へ
+          <svg class="icon sm"><use href="#i-copy"/></svg><span data-i18n="copyAndAddBtn">コピーしてテキスト追加へ</span>
         </button>
       </div>
     </div>
@@ -480,15 +488,15 @@
     <div class="sheet-backdrop" data-action="close-sheet"></div>
     <div class="sheet-panel" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle">
       <div class="sheet-head">
-        <h2 id="confirmTitle">テキストを削除しますか？</h2>
+        <h2 id="confirmTitle" data-i18n="confirmDeleteTitle">テキストを削除しますか？</h2>
       </div>
       <div class="sheet-body">
         <p id="confirmMessage" class="confirm-msg"></p>
       </div>
       <div class="sheet-foot">
         <div class="spacer"></div>
-        <button type="button" class="btn ghost" data-action="close-sheet">キャンセル</button>
-        <button type="button" class="btn danger" data-action="confirm-delete">削除する</button>
+        <button type="button" class="btn ghost" data-action="close-sheet" data-i18n="cancelBtn">キャンセル</button>
+        <button type="button" class="btn danger" data-action="confirm-delete" data-i18n="confirmDeleteBtn">削除する</button>
       </div>
     </div>
   </div>
@@ -500,8 +508,8 @@
     <div class="sheet-backdrop" data-action="cancel-conflict"></div>
     <div class="sheet-panel" role="alertdialog" aria-modal="true" aria-labelledby="conflictTitle">
       <div class="sheet-head">
-        <h2 id="conflictTitle">同じタイトルのデータがあります</h2>
-        <button type="button" class="icon-btn sm" data-action="cancel-conflict" aria-label="閉じる">
+        <h2 id="conflictTitle" data-i18n="conflictSheetTitle">同じタイトルのデータがあります</h2>
+        <button type="button" class="icon-btn sm" data-action="cancel-conflict" data-i18n-aria="closeAria" aria-label="閉じる">
           <svg class="icon"><use href="#i-close"/></svg>
         </button>
       </div>
@@ -519,7 +527,7 @@
         <button type="button" id="btnConflictSkip" class="btn block" data-action="resolve-conflict" data-policy="skip" hidden>
           重複分はスキップ（新規のみ追加）
         </button>
-        <button type="button" class="btn ghost block" data-action="cancel-conflict">
+        <button type="button" class="btn ghost block" data-action="cancel-conflict" data-i18n="cancelBtn">
           キャンセル
         </button>
       </div>
