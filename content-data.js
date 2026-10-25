@@ -122,10 +122,10 @@ const LANG_CATALOG = {
     rubySplit: 'zhuyin',
     prefixMatch: false,
     tapModes: ['word', 'char'],
-    rubyLabel: '注音（ボポモフォ）',
-    rubyDesc: '漢字の上の発音記号',
-    subLineLabel: 'ピンイン行',
-    subLineDesc: '行ごとのアルファベット表記',
+    rubyLabel: '注音（主ルビ）',
+    rubyDesc: '漢字の上下に出す注音符号（ㄅㄆㄇㄈ）',
+    subLineLabel: 'ピンイン（サブルビ）',
+    subLineDesc: '1文字ずつ揃えて表示するアルファベット発音',
     voiceHint: '※華語（zh-TW）の音声が最優先で選ばれます',
     tts: {
       lang: 'zh-TW',
@@ -143,10 +143,10 @@ const LANG_CATALOG = {
     en: {
       name: 'Mandarin (Traditional / Zhuyin)',
       editorLabel: 'Mandarin / Zhuyin',
-      rubyLabel: 'Zhuyin (Bopomofo)',
-      rubyDesc: 'Phonetic symbols above characters',
-      subLineLabel: 'Pinyin Line',
-      subLineDesc: 'Romanized pronunciation per line',
+      rubyLabel: 'Zhuyin (Main Ruby)',
+      rubyDesc: 'Bopomofo phonetic symbols per character',
+      subLineLabel: 'Pinyin (Sub-Ruby)',
+      subLineDesc: 'Romanized Pinyin aligned per character',
       voiceHint: '* Taiwanese Mandarin (zh-TW) voices are prioritized'
     }
   },
@@ -282,10 +282,10 @@ const LANG_CATALOG = {
     rubySplit: 'hangul',
     prefixMatch: true,
     tapModes: ['word', 'char'],
-    rubyLabel: '発音ハングル（ルビ）',
-    rubyDesc: '文字の上の実際の発音表記',
-    subLineLabel: 'ローマ字 / 発音行',
-    subLineDesc: '行ごとの改訂ローマ字・発音補助表記',
+    rubyLabel: '発音ハングル（主ルビ）',
+    rubyDesc: '1文字ずつ対応する実際の発音ハングル',
+    subLineLabel: 'ローマ字（サブルビ）',
+    subLineDesc: '単語ごとに揃えて表示する改訂ローマ字表記',
     voiceHint: '※韓国語（ko-KR）の音声が最優先で選ばれます',
     tts: {
       lang: 'ko-KR',
@@ -303,10 +303,10 @@ const LANG_CATALOG = {
     en: {
       name: 'Korean (Hangul)',
       editorLabel: 'Korean / Hangul',
-      rubyLabel: 'Phonetic Hangul Ruby',
-      rubyDesc: 'Actual assimilated pronunciation above Hangul',
-      subLineLabel: 'Romanization Line',
-      subLineDesc: 'Revised Romanization per line',
+      rubyLabel: 'Phonetic Hangul (Main Ruby)',
+      rubyDesc: 'Assimilated pronunciation per character',
+      subLineLabel: 'Romanization (Sub-Ruby)',
+      subLineDesc: 'Revised Romanization aligned per word',
       voiceHint: '* Korean (ko-KR) voices are prioritized'
     }
   },
@@ -322,10 +322,10 @@ const LANG_CATALOG = {
     rubySplit: 'space',
     prefixMatch: true,
     tapModes: ['word', 'char'],
-    rubyLabel: 'ふりがな（ルビ）',
-    rubyDesc: '漢字の上の読み仮名',
-    subLineLabel: 'ローマ字 / 発音行',
-    subLineDesc: '行ごとのローマ字・発音補助表記',
+    rubyLabel: 'ふりがな（主ルビ）',
+    rubyDesc: '漢字の上下に出す読み仮名',
+    subLineLabel: 'ローマ字（サブルビ）',
+    subLineDesc: '単語ごとに揃えて表示するローマ字表記',
     voiceHint: '※日本語（ja-JP）の音声が最優先で選ばれます',
     tts: {
       lang: 'ja-JP',
@@ -343,10 +343,10 @@ const LANG_CATALOG = {
     en: {
       name: 'Japanese (Furigana)',
       editorLabel: 'Japanese / Furigana',
-      rubyLabel: 'Furigana (Hiragana Ruby)',
-      rubyDesc: 'Hiragana reading above words',
-      subLineLabel: 'Romaji Line',
-      subLineDesc: 'Hepburn romanization per line',
+      rubyLabel: 'Furigana (Main Ruby)',
+      rubyDesc: 'Hiragana reading per word',
+      subLineLabel: 'Romaji (Sub-Ruby)',
+      subLineDesc: 'Hepburn romanization aligned per word',
       voiceHint: '* Japanese (ja-JP) voices are prioritized'
     }
   },
@@ -522,10 +522,10 @@ const LANG_CATALOG = {
     rubySplit: 'none',
     prefixMatch: false,
     tapModes: ['word'],
-    rubyLabel: '発音記号（IPA）',
-    rubyDesc: '単語の上のIPA発音（アカニエ等を反映）',
-    subLineLabel: 'ラテン文字転写 / 発音行',
-    subLineDesc: '行ごとのラテン文字転写表記',
+    rubyLabel: '発音記号（IPA・主ルビ）',
+    rubyDesc: '単語の上下に出すIPA発音（アカニエ等を反映）',
+    subLineLabel: 'ラテン文字転写（サブルビ）',
+    subLineDesc: '単語ごとに揃えて表示するラテン文字転写表記',
     voiceHint: '※ロシア語（ru-RU）の音声が最優先で選ばれます',
     tts: {
       lang: 'ru-RU',
@@ -543,10 +543,10 @@ const LANG_CATALOG = {
     en: {
       name: 'Russian (IPA)',
       editorLabel: 'Russian / IPA',
-      rubyLabel: 'IPA Pronunciation',
-      rubyDesc: 'IPA above Cyrillic words (reflecting vowel reduction)',
-      subLineLabel: 'Latin Transliteration',
-      subLineDesc: 'Romanized pronunciation per line',
+      rubyLabel: 'IPA (Main Ruby)',
+      rubyDesc: 'IPA pronunciation per word (reflecting vowel reduction)',
+      subLineLabel: 'Latin Transliteration (Sub-Ruby)',
+      subLineDesc: 'Romanized pronunciation aligned per word',
       voiceHint: '* Russian (ru-RU) voices are prioritized'
     }
   },
@@ -562,10 +562,10 @@ const LANG_CATALOG = {
     rubySplit: 'none',
     prefixMatch: false,
     tapModes: ['word'],
-    rubyLabel: '発音記号（IPA / 転写）',
-    rubyDesc: 'アラビア文字の上の発音表記',
-    subLineLabel: 'ラテン文字転写 / 発音行',
-    subLineDesc: '行ごとのラテン文字転写表記',
+    rubyLabel: '発音記号（IPA・主ルビ）',
+    rubyDesc: 'アラビア文字の上下に出す発音表記',
+    subLineLabel: 'ラテン文字転写（サブルビ）',
+    subLineDesc: '単語ごとに揃えて表示するラテン文字転写表記',
     voiceHint: '※アラビア語（ar）の音声が最優先で選ばれます',
     tts: {
       lang: 'ar-SA',
@@ -583,10 +583,10 @@ const LANG_CATALOG = {
     en: {
       name: 'Arabic (IPA / Transliteration)',
       editorLabel: 'Arabic / RTL',
-      rubyLabel: 'IPA / Phonetic Ruby',
-      rubyDesc: 'Pronunciation above Arabic words',
-      subLineLabel: 'Latin Transliteration',
-      subLineDesc: 'Romanized transcription per line',
+      rubyLabel: 'IPA (Main Ruby)',
+      rubyDesc: 'IPA pronunciation per word',
+      subLineLabel: 'Latin Transliteration (Sub-Ruby)',
+      subLineDesc: 'Romanized transcription aligned per word',
       voiceHint: '* Arabic (ar) voices are prioritized'
     }
   },
@@ -602,10 +602,10 @@ const LANG_CATALOG = {
     rubySplit: 'none',
     prefixMatch: false,
     tapModes: ['word'],
-    rubyLabel: '発音記号（IPA / 転写）',
-    rubyDesc: 'ペルシア文字の上の発音表記',
-    subLineLabel: 'ラテン文字転写 / 発音行',
-    subLineDesc: '行ごとのラテン文字転写表記',
+    rubyLabel: '発音記号（IPA・主ルビ）',
+    rubyDesc: 'ペルシア文字の上下に出す発音表記',
+    subLineLabel: 'ラテン文字転写（サブルビ）',
+    subLineDesc: '単語ごとに揃えて表示するラテン文字転写表記',
     voiceHint: '※ペルシア語（fa-IR）の音声が最優先で選ばれます',
     tts: {
       lang: 'fa-IR',
@@ -623,10 +623,10 @@ const LANG_CATALOG = {
     en: {
       name: 'Persian (IPA / Transliteration)',
       editorLabel: 'Persian / RTL',
-      rubyLabel: 'IPA / Phonetic Ruby',
-      rubyDesc: 'Pronunciation above Persian words',
-      subLineLabel: 'Latin Transliteration',
-      subLineDesc: 'Romanized transcription per line',
+      rubyLabel: 'IPA (Main Ruby)',
+      rubyDesc: 'IPA pronunciation per word',
+      subLineLabel: 'Latin Transliteration (Sub-Ruby)',
+      subLineDesc: 'Romanized transcription aligned per word',
       voiceHint: '* Persian (fa-IR) voices are prioritized'
     }
   },
@@ -1485,7 +1485,9 @@ const UI_TEXT_I18N = {
     copiedPromptForAddSub: 'AIの出力結果をここに貼り付けてください',
     sharePromptDocTitle: 'Ruby Text Player AI変換プロンプト',
     sharedPromptToast: 'AIプロンプトを共有しました',
-    sharePromptFailedSub: '「コピーのみ」をご利用ください'
+    sharePromptFailedSub: '「コピーのみ」をご利用ください',
+    rubyOrderNormalToast: 'ルビ配置：上＝主ルビ ／ 下＝サブルビ',
+    rubyOrderSwappedToast: 'ルビ配置：上＝サブルビ ／ 下＝主ルビ'
   },
 
   en: {
@@ -1622,7 +1624,9 @@ const UI_TEXT_I18N = {
     copiedPromptForAddSub: 'Paste the AI output into the box below',
     sharePromptDocTitle: 'Ruby Text Player AI Prompt',
     sharedPromptToast: 'Shared AI prompt',
-    sharePromptFailedSub: 'Please use "Copy Only" instead'
+    sharePromptFailedSub: 'Please use "Copy Only" instead',
+    rubyOrderNormalToast: 'Ruby Layout: Main on Top / Sub Below',
+    rubyOrderSwappedToast: 'Ruby Layout: Sub on Top / Main Below'
   }
 };
 
@@ -1664,6 +1668,9 @@ const HTML_I18N = {
     tapUnitSection: 'テキストタップ時の単位',
     tapWord: '単語ごと',
     tapChar: '1文字ごと',
+    rubyOrderSection: 'ルビの上下配置',
+    rubyOrderNormal: '上：主ルビ ／ 下：サブルビ',
+    rubyOrderSwapped: '上：サブルビ ／ 下：主ルビ',
     displayItemsSection: '表示項目',
     transLabel: '翻訳・意味行',
     transDesc: 'テキストの日本語訳・英語訳',
@@ -1763,6 +1770,9 @@ const HTML_I18N = {
     tapUnitSection: 'Tap Unit',
     tapWord: 'By Word',
     tapChar: 'By Character',
+    rubyOrderSection: 'Ruby Position (Top / Bottom)',
+    rubyOrderNormal: 'Main on Top / Sub Below',
+    rubyOrderSwapped: 'Sub on Top / Main Below',
     displayItemsSection: 'Visible Rows',
     transLabel: 'Translation Line',
     transDesc: 'Sentence translation below each line',

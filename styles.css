@@ -295,11 +295,15 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 
 .ruby-line { display: flex; flex-wrap: wrap; align-items: flex-end; margin: 0 -2px; max-width: 100%; }
 .word {
-  display: inline-flex; flex-wrap: wrap; align-items: flex-end;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: flex-end;
   max-width: 100%;
   margin: 3px 2px; padding: 2px 3px; border-radius: 8px;
   cursor: pointer; user-select: none;
   transition: background-color .15s ease;
+}
+.word-chars {
+  display: inline-flex; flex-wrap: wrap; align-items: flex-end; justify-content: center;
+  max-width: 100%;
 }
 .ch {
   display: inline-flex; flex-direction: column; align-items: center; justify-content: flex-end;
@@ -316,17 +320,58 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   font-size: calc(var(--ruby-size) * 0.90);
   letter-spacing: -0.11em;
 }
+.zy.ruby-sub {
+  font-family: var(--font-latin), var(--font-ipa);
+  letter-spacing: 0;
+  color: var(--pinyin);
+  font-weight: 600;
+}
+.zy.ruby-sub.zy-long {
+  font-size: calc(var(--ruby-size) * 0.88);
+  letter-spacing: -0.02em;
+}
+.sub-zy {
+  font-family: var(--font-latin), var(--font-ipa);
+  font-size: calc(var(--ruby-size) * 0.95);
+  line-height: 1.15;
+  color: var(--pinyin);
+  font-weight: 500;
+  white-space: nowrap;
+  letter-spacing: 0;
+  margin-top: 2px;
+  min-height: 1.15em;
+}
+.sub-zy.sub-zy-long {
+  font-size: calc(var(--ruby-size) * 0.86);
+  letter-spacing: -0.02em;
+}
+.sub-zy.ruby-main {
+  font-family: var(--font-tc);
+  color: var(--ruby);
+  font-weight: 600;
+  letter-spacing: -0.06em;
+}
+.sub-zy.ruby-main.sub-zy-long {
+  font-size: calc(var(--ruby-size) * 0.90);
+  letter-spacing: -0.11em;
+}
+.word-top-zy, .word-sub-zy {
+  padding: 0 2px;
+  text-align: center;
+}
 .zy-tone {
   display: inline-block;
   margin-left: -0.16em;
   margin-right: -0.14em;
 }
 /* 韓国語モード時のルビ視認性と分かち書き余白 */
-.lyrics.lang-ko .zy {
+.lyrics.lang-ko .zy.ruby-main,
+.lyrics.lang-ko .sub-zy.ruby-main {
   letter-spacing: 0;
   font-size: calc(var(--ruby-size) * 1.12);
 }
-.lyrics.lang-ko .zy.zy-long {
+.lyrics.lang-ko .zy.ruby-main.zy-long,
+.lyrics.lang-ko .sub-zy.ruby-main.sub-zy-long {
   font-size: calc(var(--ruby-size) * 0.95);
   letter-spacing: -0.04em;
 }
@@ -351,13 +396,15 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   min-width: 0;
   padding: 0 1px;
 }
-.lyrics.mode-word .zy {
+.lyrics.mode-word .zy.ruby-main,
+.lyrics.mode-word .sub-zy.ruby-main {
   font-family: var(--font-ipa);
   letter-spacing: 0;
   font-size: calc(var(--ruby-size) * 0.96);
   font-weight: 500;
 }
-.lyrics.mode-word .zy.zy-long {
+.lyrics.mode-word .zy.ruby-main.zy-long,
+.lyrics.mode-word .sub-zy.ruby-main.sub-zy-long {
   font-size: calc(var(--ruby-size) * 0.86);
   letter-spacing: -0.02em;
 }
@@ -371,7 +418,8 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   padding-bottom: 4px;
 }
 /* RTL（アラビア語・ペルシア語）およびタイ語の文字結合・上下記号保護 */
-.ruby-line[dir="rtl"] .zy {
+.ruby-line[dir="rtl"] .zy,
+.ruby-line[dir="rtl"] .sub-zy {
   direction: ltr;
   unicode-bidi: isolate;
 }
@@ -413,19 +461,27 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
   font-family: var(--font-tc); font-size: calc(var(--hanzi-size) * .7);
   color: var(--text-3); user-select: none;
 }
-.hide-zhuyin .zy { display: none; }
+.line.has-bottom-ruby .punct {
+  padding-bottom: calc(var(--ruby-size) * 1.15 + 8px);
+}
+.lyrics.mode-word .line.has-bottom-ruby .punct {
+  padding-bottom: calc(var(--ruby-size) * 1.15 + 6px);
+}
+.hide-zhuyin .zy,
+.hide-main-ruby .ruby-main { display: none; }
+.hide-sub-ruby .ruby-sub { display: none; }
 
 /* タップ単位: 単語 */
 .tap-word .word:hover { background: var(--accent-soft); }
 .tap-word .word.has-vocab { box-shadow: inset 0 -2px 0 var(--accent-soft-2); }
 .tap-word .word.flash { background: var(--accent); }
-.tap-word .word.flash .hz, .tap-word .word.flash .zy { color: var(--on-accent); }
+.tap-word .word.flash .hz, .tap-word .word.flash .zy, .tap-word .word.flash .sub-zy { color: var(--on-accent); }
 /* タップ単位: 1文字 */
 .tap-char .word { cursor: default; padding: 2px 1px; }
 .tap-char .ch { cursor: pointer; padding: 2px 3px; }
 .tap-char .ch:hover { background: var(--accent-soft); }
 .tap-char .ch.flash { background: var(--accent); }
-.tap-char .ch.flash .hz, .tap-char .ch.flash .zy { color: var(--on-accent); }
+.tap-char .ch.flash .hz, .tap-char .ch.flash .zy, .tap-char .ch.flash .sub-zy { color: var(--on-accent); }
 
 .pinyin-row { margin: 8px 0 0; font-size: 13px; color: var(--pinyin); font-family: var(--font-latin); letter-spacing: .01em; }
 .trans-row { margin: 6px 0 0; font-size: 14px; color: var(--text-2); }

@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" media="print" onload="this.media='all'"
         href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+Arabic:wght@400;500;700&family=Noto+Sans+Thai:wght@400;500;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=20261025b">
+  <link rel="stylesheet" href="styles.css?v=20261025c">
 </head>
 <body>
 
@@ -195,21 +195,27 @@
           <button type="button" data-action="set-tap" data-value="char" aria-pressed="false" data-i18n="tapChar">1文字ごと</button>
         </div>
 
+        <div class="section-label" data-i18n="rubyOrderSection">ルビの上下配置</div>
+        <div class="segmented" role="group" aria-label="ルビの上下配置">
+          <button type="button" data-action="set-ruby-order" data-value="normal" aria-pressed="true" data-i18n="rubyOrderNormal">上：主ルビ ／ 下：サブルビ</button>
+          <button type="button" data-action="set-ruby-order" data-value="swapped" aria-pressed="false" data-i18n="rubyOrderSwapped">上：サブルビ ／ 下：主ルビ</button>
+        </div>
+
         <div class="section-label" data-i18n="displayItemsSection">表示項目</div>
         <div>
           <div class="switch-row">
             <div>
-              <div id="labelRubySwitch" class="label">発音ハングル（ルビ）</div>
+              <div id="labelRubySwitch" class="label">発音ハングル（主ルビ）</div>
               <div id="descRubySwitch" class="desc">文字の上の実際の発音表記</div>
             </div>
             <button type="button" id="swZhuyin" class="switch" role="switch" aria-checked="true" data-action="toggle-display" data-target="zhuyin"></button>
           </div>
           <div class="switch-row">
             <div>
-              <div id="labelPinyinSwitch" class="label">ローマ字 / 発音行</div>
-              <div id="descPinyinSwitch" class="desc">行ごとの改訂ローマ字・発音補助表記</div>
+              <div id="labelPinyinSwitch" class="label">ローマ字（サブルビ）</div>
+              <div id="descPinyinSwitch" class="desc">単語・文字ごとのローマ字補助表記</div>
             </div>
-            <button type="button" id="swPinyin" class="switch" role="switch" aria-checked="false" data-action="toggle-display" data-target="pinyin"></button>
+            <button type="button" id="swPinyin" class="switch" role="switch" aria-checked="true" data-action="toggle-display" data-target="pinyin"></button>
           </div>
           <div class="switch-row">
             <div>
@@ -534,7 +540,7 @@
     </div>
   </div>
 
-  <script src="content-data.js?v=20261025b"></script>
-  <script src="app.js?v=20261025b"></script>
+  <script src="content-data.js?v=20261025c"></script>
+  <script src="app.js?v=20261025c"></script>
 </body>
 </html>

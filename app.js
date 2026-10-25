@@ -78,7 +78,8 @@ const state = {
   theme: 'auto',         // 'auto' | 'light' | 'dark'
   fontSize: 'm',         // 's' | 'm' | 'l'
   showZhuyin: true,
-  showPinyin: false,
+  showPinyin: true,
+  swapRuby: false,       // false: 上=主ルビ/下=サブルビ, true: 上=サブルビ/下=主ルビ
   showTrans: true,
   tapMode: 'word',       // 'word' | 'char'
   speechRate: 1.0,
@@ -110,7 +111,12 @@ function loadSettings() {
       if (s.theme) state.theme = s.theme;
       if (s.fontSize) state.fontSize = s.fontSize;
       if (typeof s.showZhuyin === 'boolean') state.showZhuyin = s.showZhuyin;
-      if (typeof s.showPinyin === 'boolean') state.showPinyin = s.showPinyin;
+      if (s.subRubyDefaultV2) {
+        if (typeof s.showPinyin === 'boolean') state.showPinyin = s.showPinyin;
+      } else {
+        state.showPinyin = true;
+      }
+      if (typeof s.swapRuby === 'boolean') state.swapRuby = s.swapRuby;
       if (typeof s.showTrans === 'boolean') state.showTrans = s.showTrans;
       if (s.tapMode === 'word' || s.tapMode === 'char') state.tapMode = s.tapMode;
       if (typeof s.speechRate === 'number') state.speechRate = s.speechRate;
@@ -148,6 +154,8 @@ function saveSettings() {
       fontSize: state.fontSize,
       showZhuyin: state.showZhuyin,
       showPinyin: state.showPinyin,
+      swapRuby: state.swapRuby,
+      subRubyDefaultV2: true,
       showTrans: state.showTrans,
       tapMode: state.tapMode,
       speechRate: state.speechRate,
@@ -256,6 +264,10 @@ function syncControlsUI() {
       btn.title = allowCharTap ? '' : UI_TEXT.charTapDisabledHint;
     }
     btn.setAttribute('aria-pressed', String(btn.dataset.value === effectiveTap));
+  });
+  document.querySelectorAll('[data-action="set-ruby-order"]').forEach(btn => {
+    const isSwappedBtn = btn.dataset.value === 'swapped';
+    btn.setAttribute('aria-pressed', String(isSwappedBtn === Boolean(state.swapRuby)));
   });
 
   document.getElementById('swZhuyin').setAttribute('aria-checked', String(state.showZhuyin));
@@ -932,6 +944,8 @@ function parseLyricsMaterial(rawText) {
       });
     }
 
+    const subAlign = assignSubRubiesToLine(wordGroups, block.pinyinLine, detectedLang);
+
     return {
       id: idx,
       plainSentence,
@@ -939,6 +953,9 @@ function parseLyricsMaterial(rawText) {
       jpLine: block.jpLine,
       vocabList: block.vocabList,
       wordGroups,
+      hasDistinctSubRuby: subAlign.hasDistinctSubRuby,
+      hasAlignedSubRuby: subAlign.hasAlignedSubRuby,
+      hasRedundantPinyinLine: subAlign.hasRedundantPinyinLine,
       isOpen: idx === 0
     };
   });
@@ -950,6 +967,172 @@ function parseLyricsMaterial(rawText) {
     hasZhuyin,
     detectedLang,
     lines: parsedLines
+  };
+}
+
+function assignSubRubiesToLine(wordGroups, pinyinLine, detectedLang) {
+  const nonPunctWgs = wordGroups.filter(wg => !wg.isPunct);
+  if (nonPunctWgs.length === 0) {
+    return { hasDistinctSubRuby: false, hasAlignedSubRuby: false, hasRedundantPinyinLine: false };
+  }
+
+  const normCompare = (s) => String(s || '')
+    .normalize('NFC')
+    .replace(/[\s,，.。!！?？;；:：'’"“”\-—–~～()（）【】\[\]「」『』«»¿¡،؟؛]+/g, '')
+    .toLowerCase();
+
+  // 1) 語彙解説の (主ルビ / サブルビ) から抽出
+  let hasSlashSubInVocab = false;
+  let wIdx = 0;
+  while (wIdx < wordGroups.length) {
+    const wg = wordGroups[wIdx];
+    if (wg.isPunct) { wIdx++; continue; }
+
+    if (wg.spanId) {
+      const spanId = wg.spanId;
+      const spanWgs = [];
+      while (wIdx < wordGroups.length && wordGroups[wIdx].spanId === spanId) {
+        if (!wordGroups[wIdx].isPunct) spanWgs.push(wordGroups[wIdx]);
+        wIdx++;
+      }
+      const v = spanWgs[0]?.vocabInfo;
+      if (v && v.pinyin && /[\/／]/.test(v.pinyin)) {
+        const subPart = v.pinyin.split(/[\/／]/).slice(1).join('/').trim();
+        if (subPart) {
+          hasSlashSubInVocab = true;
+          const parts = subPart.split(/\s+/).filter(Boolean);
+          if (parts.length === spanWgs.length) {
+            spanWgs.forEach((swg, idx) => { swg._vocabSubRuby = parts[idx]; });
+          } else {
+            spanWgs[0]._vocabSubRuby = subPart;
+          }
+        }
+      }
+      continue;
+    }
+
+    const v = wg.vocabInfo;
+    if (v && v.pinyin && /[\/／]/.test(v.pinyin)) {
+      const subPart = v.pinyin.split(/[\/／]/).slice(1).join('/').trim();
+      if (subPart && normCompare(subPart) !== normCompare(wg.zhuyin)) {
+        hasSlashSubInVocab = true;
+        wg._vocabSubRuby = subPart;
+      }
+    }
+    wIdx++;
+  }
+
+  // 2) pinyinLine が主ルビ全体と同一かチェック
+  const allMainRubyJoined = nonPunctWgs.map(wg => wg.zhuyin).filter(Boolean).join(' ');
+  const lineIsIdenticalToMain = Boolean(
+    pinyinLine &&
+    normCompare(pinyinLine) === normCompare(allMainRubyJoined)
+  );
+
+  if ((!pinyinLine || lineIsIdenticalToMain) && !hasSlashSubInVocab) {
+    return {
+      hasDistinctSubRuby: false,
+      hasAlignedSubRuby: false,
+      hasRedundantPinyinLine: lineIsIdenticalToMain
+    };
+  }
+
+  // 3) pinyinLine を句読点で除去してスペース分割
+  const cleanLineTokens = pinyinLine
+    ? pinyinLine
+        .replace(/[，。！？、,.!?…～~—・;；:：「」『』【】《》〈〉"“”（）()«»¿¡،؟؛]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+    : [];
+
+  const allCharTokens = [];
+  nonPunctWgs.forEach(wg => {
+    wg.tokens.forEach(t => {
+      if (!t.isPunct) allCharTokens.push(t);
+    });
+  });
+
+  const isCharSplitCjk = ['zh-TW', 'zh-CN', 'yue-HK', 'nan-TW'].includes(detectedLang);
+  let alignedCount = 0;
+
+  if (isCharSplitCjk && cleanLineTokens.length === allCharTokens.length && allCharTokens.length > 0) {
+    allCharTokens.forEach((t, idx) => {
+      t.subRuby = cleanLineTokens[idx];
+    });
+    nonPunctWgs.forEach(wg => {
+      wg.subRuby = wg.tokens.map(t => t.subRuby).filter(Boolean).join(' ');
+      alignedCount++;
+    });
+  } else if (cleanLineTokens.length === nonPunctWgs.length && nonPunctWgs.length > 0) {
+    nonPunctWgs.forEach((wg, idx) => {
+      const cand = cleanLineTokens[idx];
+      wg.subRuby = cand;
+      if (isCharSplitCjk && wg._vocabSubRuby) {
+        const vSyls = wg._vocabSubRuby.split(/\s+/).filter(Boolean);
+        if (vSyls.length === wg.tokens.length) {
+          wg.tokens.forEach((t, tidx) => { t.subRuby = vSyls[tidx]; });
+        }
+      } else if (wg.tokens.length === 1) {
+        wg.tokens[0].subRuby = cand;
+      }
+      alignedCount++;
+    });
+  } else {
+    let cursor = 0;
+    nonPunctWgs.forEach((wg, idx) => {
+      if (wg._vocabSubRuby) {
+        wg.subRuby = wg._vocabSubRuby;
+        const vSyls = wg._vocabSubRuby.split(/\s+/).filter(Boolean);
+        if (isCharSplitCjk && vSyls.length === wg.tokens.length) {
+          wg.tokens.forEach((t, tidx) => { t.subRuby = vSyls[tidx]; });
+        } else if (wg.tokens.length === 1) {
+          wg.tokens[0].subRuby = wg.subRuby;
+        }
+        cursor += vSyls.length;
+        alignedCount++;
+      } else if (cursor < cleanLineTokens.length) {
+        const remainingWgs = nonPunctWgs.length - idx;
+        const remainingTokens = cleanLineTokens.length - cursor;
+        const takeCount = remainingWgs === 1 ? remainingTokens : 1;
+        const slice = cleanLineTokens.slice(cursor, cursor + takeCount).join(' ');
+        if (slice) {
+          wg.subRuby = slice;
+          if (wg.tokens.length === 1) wg.tokens[0].subRuby = slice;
+          cursor += takeCount;
+          alignedCount++;
+        }
+      }
+    });
+  }
+
+  // 連語スパン (spanId) のサブルビ結合文字列も更新
+  let sIdx = 0;
+  while (sIdx < wordGroups.length) {
+    const wg = wordGroups[sIdx];
+    if (!wg.isPunct && wg.spanId) {
+      const spanId = wg.spanId;
+      const spanWgs = [];
+      while (sIdx < wordGroups.length && wordGroups[sIdx].spanId === spanId) {
+        if (!wordGroups[sIdx].isPunct) spanWgs.push(wordGroups[sIdx]);
+        sIdx++;
+      }
+      const spanSub = spanWgs.map(swg => swg.subRuby).filter(Boolean).join(' ');
+      spanWgs.forEach(swg => { swg.spanSubRuby = spanSub; });
+      continue;
+    }
+    sIdx++;
+  }
+
+  const hasDistinctSubRuby = nonPunctWgs.some(wg =>
+    wg.subRuby && normCompare(wg.subRuby) !== normCompare(wg.zhuyin)
+  );
+  const hasAlignedSubRuby = hasDistinctSubRuby && alignedCount >= nonPunctWgs.length;
+
+  return {
+    hasDistinctSubRuby,
+    hasAlignedSubRuby,
+    hasRedundantPinyinLine: lineIsIdenticalToMain
   };
 }
 
@@ -1119,13 +1302,26 @@ function isLongRuby(zy) {
   return /[\u3105-\u3129]/.test(zy) ? len >= 4 : len >= 5;
 }
 
+function isLongSubRuby(sub) {
+  if (!sub) return false;
+  return Array.from(sub).length >= 7;
+}
+
 function renderLyrics() {
   const container = document.getElementById('lyricsContainer');
   const isKo = state.currentSongLang === 'ko-KR';
   const langCfg = getLangConfig(state.currentSongLang);
   const isWordMode = langCfg.segmentation === 'word';
+  const isCharSplitCjk = ['zh-TW', 'zh-CN', 'yue-HK', 'nan-TW'].includes(state.currentSongLang);
   const effectiveTap = getEffectiveTapMode();
-  container.className = `lyrics ${isKo ? 'lang-ko' : ''} ${isWordMode ? 'mode-word' : ''} ${state.showZhuyin ? '' : 'hide-zhuyin'} ${effectiveTap === 'char' ? 'tap-char' : 'tap-word'}`;
+  container.className = [
+    'lyrics',
+    isKo ? 'lang-ko' : '',
+    isWordMode ? 'mode-word' : '',
+    state.showZhuyin ? '' : 'hide-main-ruby',
+    state.showPinyin ? '' : 'hide-sub-ruby',
+    effectiveTap === 'char' ? 'tap-char' : 'tap-word'
+  ].filter(Boolean).join(' ');
 
   if (state.lyricsData.length === 0) {
     container.innerHTML = `<div class="empty-hint">${escapeHtml(UI_TEXT.emptyLyricsHint)}</div>`;
@@ -1136,23 +1332,89 @@ function renderLyrics() {
   const lineLang = langCfg.bcp47 || state.currentSongLang || 'zh-TW';
 
   container.innerHTML = state.lyricsData.map((line, lineIdx) => {
+    const lineHasSub = Boolean(line.hasDistinctSubRuby);
+    const bottomRubyVisible = lineHasSub && (state.swapRuby ? state.showZhuyin : state.showPinyin);
+
     const renderWgItem = (wg, wgIdx) => {
       if (wg.isPunct) {
         return `<span class="punct">${escapeHtml(wg.text)}</span>`;
       }
 
-      const charsHtml = wg.tokens.map((t, tIdx) => `
-        <span class="ch ${t.isLatin ? 'latin' : ''} ${t.isGroupRuby ? 'group-ruby' : ''} ${isKo && t.internalGap ? 'ko-gap gap-after' : ''}" data-line="${lineIdx}" data-wg="${wgIdx}" data-ch="${tIdx}">
-          <span class="zy ${isLongRuby(t.zhuyin) ? 'zy-long' : ''}">${formatRubyHtml(t.zhuyin)}</span>
-          <span class="hz">${escapeHtml(t.char)}</span>
-        </span>
-      `).join('');
+      const useCharLevelSub = lineHasSub && isCharSplitCjk && wg.tokens.every(t => Boolean(t.subRuby));
+      let wordTopRubyHtml = '';
+      let wordBottomRubyHtml = '';
+
+      const charsHtml = wg.tokens.map((t, tIdx) => {
+        const chClasses = [
+          'ch',
+          t.isLatin ? 'latin' : '',
+          t.isGroupRuby ? 'group-ruby' : '',
+          isKo && t.internalGap ? 'ko-gap gap-after' : ''
+        ].filter(Boolean).join(' ');
+
+        if (!lineHasSub) {
+          return `
+            <span class="${chClasses}" data-line="${lineIdx}" data-wg="${wgIdx}" data-ch="${tIdx}">
+              <span class="zy ruby-main ${isLongRuby(t.zhuyin) ? 'zy-long' : ''}">${formatRubyHtml(t.zhuyin)}</span>
+              <span class="hz">${escapeHtml(t.char)}</span>
+            </span>
+          `;
+        }
+
+        if (useCharLevelSub) {
+          if (!state.swapRuby) {
+            return `
+              <span class="${chClasses}" data-line="${lineIdx}" data-wg="${wgIdx}" data-ch="${tIdx}">
+                <span class="zy ruby-main ${isLongRuby(t.zhuyin) ? 'zy-long' : ''}">${formatRubyHtml(t.zhuyin)}</span>
+                <span class="hz">${escapeHtml(t.char)}</span>
+                <span class="sub-zy ruby-sub ${isLongSubRuby(t.subRuby) ? 'sub-zy-long' : ''}">${escapeHtml(t.subRuby || '')}</span>
+              </span>
+            `;
+          } else {
+            return `
+              <span class="${chClasses}" data-line="${lineIdx}" data-wg="${wgIdx}" data-ch="${tIdx}">
+                <span class="zy ruby-sub ${isLongSubRuby(t.subRuby) ? 'zy-long' : ''}">${escapeHtml(t.subRuby || '')}</span>
+                <span class="hz">${escapeHtml(t.char)}</span>
+                <span class="sub-zy ruby-main ${isLongRuby(t.zhuyin) ? 'sub-zy-long' : ''}">${formatRubyHtml(t.zhuyin)}</span>
+              </span>
+            `;
+          }
+        }
+
+        // 単語単位のサブルビ（韓国語・日本語・露・ア・ペ等）
+        if (!state.swapRuby) {
+          return `
+            <span class="${chClasses}" data-line="${lineIdx}" data-wg="${wgIdx}" data-ch="${tIdx}">
+              <span class="zy ruby-main ${isLongRuby(t.zhuyin) ? 'zy-long' : ''}">${formatRubyHtml(t.zhuyin)}</span>
+              <span class="hz">${escapeHtml(t.char)}</span>
+            </span>
+          `;
+        } else {
+          return `
+            <span class="${chClasses}" data-line="${lineIdx}" data-wg="${wgIdx}" data-ch="${tIdx}">
+              <span class="hz">${escapeHtml(t.char)}</span>
+              <span class="sub-zy ruby-main ${isLongRuby(t.zhuyin) ? 'sub-zy-long' : ''}">${formatRubyHtml(t.zhuyin)}</span>
+            </span>
+          `;
+        }
+      }).join('');
+
+      if (lineHasSub && !useCharLevelSub) {
+        const subText = wg.subRuby || '';
+        if (!state.swapRuby) {
+          wordBottomRubyHtml = `<span class="sub-zy word-sub-zy ruby-sub ${isLongSubRuby(subText) ? 'sub-zy-long' : ''}">${escapeHtml(subText)}</span>`;
+        } else {
+          wordTopRubyHtml = `<span class="zy word-top-zy ruby-sub ${isLongSubRuby(subText) ? 'zy-long' : ''}">${escapeHtml(subText)}</span>`;
+        }
+      }
 
       const hasVocab = Boolean(wg.vocabInfo && wg.vocabInfo.meaning);
       const spanAttr = wg.spanId ? ` data-span="${wg.spanId}"` : '';
       return `
         <span class="word ${hasVocab ? 'has-vocab' : ''} ${wg.hasSpaceAfter ? 'ko-gap gap-after' : ''}" data-line="${lineIdx}" data-wg="${wgIdx}"${spanAttr}>
-          ${charsHtml}
+          ${wordTopRubyHtml}
+          <span class="word-chars">${charsHtml}</span>
+          ${wordBottomRubyHtml}
         </span>
       `;
     };
@@ -1214,9 +1476,14 @@ function renderLyrics() {
 
     const isActive = state.activeLineIdx === lineIdx;
     const isSpeaking = state.speakingLineIdx === lineIdx;
+    const showFallbackPinyinRow = Boolean(
+      line.pinyinLine &&
+      !line.hasAlignedSubRuby &&
+      (!line.hasRedundantPinyinLine || (!state.showZhuyin && state.showPinyin))
+    );
 
     return `
-      <article id="line-card-${lineIdx}" class="line ${isActive ? 'is-active' : ''} ${isSpeaking ? 'is-speaking' : ''}" data-line-card="${lineIdx}">
+      <article id="line-card-${lineIdx}" class="line ${isActive ? 'is-active' : ''} ${isSpeaking ? 'is-speaking' : ''} ${bottomRubyVisible ? 'has-bottom-ruby' : ''}" data-line-card="${lineIdx}">
         <div class="line-head">
           <span class="line-no">${String(lineIdx + 1).padStart(2, '0')}</span>
           <button type="button" class="icon-btn sm line-play" data-action="play-line" data-line="${lineIdx}" title="${escapeHtml(UI_TEXT.playLineTitle)}" aria-label="${escapeHtml(UI_TEXT.playLineAria(lineIdx + 1))}">
@@ -1226,7 +1493,7 @@ function renderLyrics() {
 
         <div class="ruby-line" dir="${lineDir}" lang="${escapeHtml(lineLang)}">${wordsHtml}</div>
 
-        ${line.pinyinLine ? `<p class="pinyin-row" dir="auto" ${state.showPinyin ? '' : 'hidden'}>${escapeHtml(line.pinyinLine)}</p>` : ''}
+        ${showFallbackPinyinRow ? `<p class="pinyin-row" dir="auto" ${state.showPinyin ? '' : 'hidden'}>${escapeHtml(line.pinyinLine)}</p>` : ''}
         ${line.jpLine ? `<p class="trans-row" ${state.showTrans ? '' : 'hidden'}>${escapeHtml(line.jpLine)}</p>` : ''}
 
         ${line.vocabList.length > 0 ? `
@@ -2764,7 +3031,12 @@ function setupEvents() {
           updateActiveLineDOM();
           flashElement(chEl);
           const note = wg.vocabInfo ? `${wg.vocabInfo.word}：${wg.vocabInfo.meaning}` : '';
-          speakText(tok.char, tok.zhuyin, note);
+          const mainR = tok.zhuyin || '';
+          const subR = tok.subRuby || '';
+          const rubyDisplay = (subR && subR !== mainR)
+            ? (state.swapRuby ? `${subR} / ${mainR}` : `${mainR} / ${subR}`)
+            : (mainR || subR);
+          speakText(tok.char, rubyDisplay, note);
         }
         return;
       }
@@ -2781,11 +3053,21 @@ function setupEvents() {
             const spanEls = document.querySelectorAll(`.word[data-line="${lIdx}"][data-span="${wg.spanId}"]`);
             flashElement(spanEls.length > 0 ? spanEls : wordEl);
             const note = wg.vocabInfo ? wg.vocabInfo.meaning : '';
-            speakText(wg.spanText || wg.text, wg.spanZhuyin || wg.zhuyin, note);
+            const mainR = wg.spanZhuyin || wg.zhuyin || '';
+            const subR = wg.spanSubRuby || wg.subRuby || '';
+            const rubyDisplay = (subR && subR !== mainR)
+              ? (state.swapRuby ? `${subR} / ${mainR}` : `${mainR} / ${subR}`)
+              : (mainR || subR);
+            speakText(wg.spanText || wg.text, rubyDisplay, note);
           } else {
             flashElement(wordEl);
             const note = wg.vocabInfo ? wg.vocabInfo.meaning : '';
-            speakText(wg.text, wg.zhuyin, note);
+            const mainR = wg.zhuyin || '';
+            const subR = wg.subRuby || '';
+            const rubyDisplay = (subR && subR !== mainR)
+              ? (state.swapRuby ? `${subR} / ${mainR}` : `${mainR} / ${subR}`)
+              : (mainR || subR);
+            speakText(wg.text, rubyDisplay, note);
           }
         }
         return;
@@ -3060,6 +3342,17 @@ function setupEvents() {
         saveSettings();
         renderLyrics();
         break;
+      case 'set-ruby-order': {
+        const nextSwap = actEl.dataset.value === 'swapped';
+        if (state.swapRuby !== nextSwap) {
+          state.swapRuby = nextSwap;
+          syncControlsUI();
+          saveSettings();
+          renderLyrics();
+          showToast(state.swapRuby ? UI_TEXT.rubyOrderSwappedToast : UI_TEXT.rubyOrderNormalToast);
+        }
+        break;
+      }
       case 'toggle-display': {
         const target = actEl.dataset.target;
         if (target === 'zhuyin') state.showZhuyin = !state.showZhuyin;
