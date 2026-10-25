@@ -341,7 +341,15 @@ function initLibrary() {
   } catch (e) {}
 
   const legacyDefaultIds = new Set(['song_default_1', 'song_default_easyweeds_spring', 'song_default_molihua', 'song_default_arirang']);
-  localSongs = localSongs.filter(s => s && s.id && !legacyDefaultIds.has(s.id));
+  const isLegacyDefaultSong = (s) => {
+    if (!s || !s.id) return true;
+    if (legacyDefaultIds.has(s.id)) return true;
+    const t = String(s.title || '').trim();
+    const a = String(s.artist || '').trim();
+    if (t === '아리랑 (Arirang)' && a.includes('韓国伝統民謡')) return true;
+    return false;
+  };
+  localSongs = localSongs.filter(s => !isLegacyDefaultSong(s));
 
   const dedupedList = [];
   const findExistingIdx = (song) => {
