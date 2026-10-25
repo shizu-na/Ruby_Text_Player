@@ -651,7 +651,20 @@
     .stack { display: flex; flex-direction: column; gap: 10px; }
     .parse-status { font-size: 12px; margin-top: 6px; color: var(--text-3); min-height: 1.4em; }
     .parse-status.ok { color: var(--accent); }
+    .parse-status.warn { color: var(--pinyin); font-weight: 600; }
     .parse-status.err { color: var(--danger); font-weight: 600; }
+    .conflict-list {
+      display: flex; flex-direction: column; gap: 6px;
+      max-height: 180px; overflow-y: auto;
+      padding: 10px 12px; border-radius: 12px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 13px;
+    }
+    .conflict-item { display: flex; align-items: center; gap: 8px; min-width: 0; }
+    .conflict-item .lang-badge { width: 24px; height: 24px; font-size: 11px; border-radius: 6px; }
+    .conflict-item-info { min-width: 0; flex: 1; display: flex; align-items: baseline; gap: 6px; }
+    .conflict-item .conflict-name { font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conflict-item .conflict-sub { font-size: 11px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .grid-2 { display: grid; grid-template-columns: 1fr; gap: 12px; }
     @media (min-width: 520px) { .grid-2 { grid-template-columns: 1fr 1fr; } }
     .confirm-msg { font-size: 14px; color: var(--text-2); margin: 0; }
@@ -1141,6 +1154,39 @@
         <div class="spacer"></div>
         <button type="button" class="btn ghost" data-action="close-sheet">キャンセル</button>
         <button type="button" class="btn danger" data-action="confirm-delete">削除する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       シート7: 重複タイトル（内容違い）の確認ダイアログ
+       ====================================================================== -->
+  <div id="conflictSheet" class="sheet compact" hidden aria-hidden="true">
+    <div class="sheet-backdrop" data-action="cancel-conflict"></div>
+    <div class="sheet-panel" role="alertdialog" aria-modal="true" aria-labelledby="conflictTitle">
+      <div class="sheet-head">
+        <h2 id="conflictTitle">同じタイトルのデータがあります</h2>
+        <button type="button" class="icon-btn sm" data-action="cancel-conflict" aria-label="閉じる">
+          <svg class="icon"><use href="#i-close"/></svg>
+        </button>
+      </div>
+      <div class="sheet-body stack">
+        <p id="conflictMessage" class="confirm-msg"></p>
+        <div id="conflictList" class="conflict-list"></div>
+      </div>
+      <div class="sheet-foot" style="flex-direction:column; align-items:stretch; gap:8px;">
+        <button type="button" id="btnConflictKeepBoth" class="btn primary block" data-action="resolve-conflict" data-policy="keep-both">
+          別名（(2)など）にして両方残す
+        </button>
+        <button type="button" id="btnConflictOverwrite" class="btn block" data-action="resolve-conflict" data-policy="overwrite">
+          新しい内容で既存データを上書き
+        </button>
+        <button type="button" id="btnConflictSkip" class="btn block" data-action="resolve-conflict" data-policy="skip" hidden>
+          重複分はスキップ（新規のみ追加）
+        </button>
+        <button type="button" class="btn ghost block" data-action="cancel-conflict">
+          キャンセル
+        </button>
       </div>
     </div>
   </div>
@@ -1687,6 +1733,7 @@ sim nido mot kkaseo balbyeongnanda
       currentSongId: '',
       editingSongId: null,
       pendingDeleteSongId: null,
+      pendingConflict: null,
 
       // 永続化される設定
       theme: 'auto',         // 'auto' | 'light' | 'dark'
@@ -1831,7 +1878,19 @@ sim nido mot kkaseo balbyeongnanda
         .trim();
     }
 
-    function getSongIdentityKey(title, artist, rawText = '') {
+    function detectLangQuick(rawText = '') {
+      const lm = String(rawText || '').match(/^【(?:言語|Language|Lang)】\s*(.+)$/im);
+      if (lm) {
+        const resolved = resolveLang(lm[1]);
+        if (resolved) return resolved;
+      }
+      if (/[^\s(（]+\s*[(（][^)\）]*[\u3105-\u3129]+[^)\）]*[)）]/.test(rawText)) return 'zh-TW';
+      if (/[\uAC00-\uD7A3]+\s*[(（][^)）]*[\uAC00-\uD7A3\u3131-\u318E]+[^)）]*[)）]/.test(rawText)) return 'ko-KR';
+      if (/[\p{Script=Han}\u3040-\u30ff]+\s*[(（][\u3040-\u309F\u30A0-\u30FFー\s・]+[)）]/u.test(rawText)) return 'ja-JP';
+      return 'zh-CN';
+    }
+
+    function getSongIdentityKey(title, artist, rawText = '', lang = '') {
       let t = String(title || '').trim();
       let a = String(artist || '').trim();
       if (!t && rawText) {
@@ -1842,13 +1901,14 @@ sim nido mot kkaseo balbyeongnanda
         const am = String(rawText).match(/^【(?:出典|著者|作者|歌手|アーティスト|Artist|Author|Source)】\s*(.+)$/im);
         if (am) a = am[1].trim();
       }
+      const effLang = lang || (rawText ? detectLangQuick(rawText) : '');
       const normTitle = normalizeMetaStr(t);
       const normArtist = normalizeMetaStr(a);
       if (normTitle) {
-        return `meta:${normTitle}__${normArtist}`;
+        return `meta:${effLang}__${normTitle}__${normArtist}`;
       }
       const normRaw = normalizeMetaStr(String(rawText || '').slice(0, 120));
-      return `raw:${normRaw}`;
+      return `raw:${effLang}__${normRaw}`;
     }
 
     function generateDeterministicSongId(title, artist, rawText = '') {
@@ -3226,9 +3286,11 @@ sim nido mot kkaseo balbyeongnanda
     const songSummaryCache = new Map();
 
     function getSongSummary(song) {
-      const cached = songSummaryCache.get(song.id);
-      if (cached && cached.rawText === song.rawText) {
-        return cached;
+      if (song.id) {
+        const cached = songSummaryCache.get(song.id);
+        if (cached && cached.rawText === song.rawText) {
+          return cached;
+        }
       }
       const parsed = parseLyricsMaterial(song.rawText);
       const summary = {
@@ -3236,7 +3298,9 @@ sim nido mot kkaseo balbyeongnanda
         detectedLang: parsed.detectedLang,
         lineCount: parsed.lines.length
       };
-      songSummaryCache.set(song.id, summary);
+      if (song.id) {
+        songSummaryCache.set(song.id, summary);
+      }
       return summary;
     }
 
@@ -3470,13 +3534,63 @@ sim nido mot kkaseo balbyeongnanda
       return { mode: 'invalid', songs: [] };
     }
 
-    // 複数曲を既存ライブラリへ重複排除・上書き判定つきで統合
-    function mergeSongsIntoLibrary(incomingSongs, { preferIncoming = true } = {}) {
-      let added = 0;
-      let updated = 0;
-      let skipped = 0;
-      let firstTargetId = '';
+    function isSameSongContent(songA, songB) {
+      const norm = (s) => String(s || '').replace(/\r\n/g, '\n').trim();
+      if (norm(songA.rawText) === norm(songB.rawText)) return true;
+      return norm(buildFormattedSongText(songA)) === norm(buildFormattedSongText(songB));
+    }
+
+    function replaceOrPrependTitleInRawText(rawText, newTitle) {
+      const normalized = String(rawText || '').replace(/\r\n/g, '\n').trim();
+      const titleTagRegex = /^【(?:タイトル|曲名|Title)】\s*.+$/im;
+      if (titleTagRegex.test(normalized)) {
+        return normalized.replace(titleTagRegex, `【タイトル】${newTitle}`);
+      }
+      const langLineMatch = normalized.match(/^(【(?:言語|Language|Lang)】\s*.+)\n?/i);
+      if (langLineMatch) {
+        const rest = normalized.slice(langLineMatch[0].length).replace(/^\n+/, '');
+        return `${langLineMatch[1]}\n【タイトル】${newTitle}\n${rest}`;
+      }
+      return `【タイトル】${newTitle}\n\n${normalized}`;
+    }
+
+    function generateDisambiguatedTitleAndRaw(baseTitle, artist, rawText, lang, currentSongs) {
+      const cleanBase = String(baseTitle || '無題のテキスト').replace(/[\s\u3000]*[(（]\d+[)）]$/, '').trim() || '無題のテキスト';
+      let n = 2;
+      while (n < 1000) {
+        const candTitle = `${cleanBase} (${n})`;
+        const candRaw = replaceOrPrependTitleInRawText(rawText, candTitle);
+        const candKey = getSongIdentityKey(candTitle, artist, candRaw, lang);
+        const exists = currentSongs.some(s => getSongIdentityKey(s.title, s.artist, s.rawText) === candKey);
+        if (!exists) {
+          return { title: candTitle, rawText: candRaw, identityKey: candKey };
+        }
+        n++;
+      }
+      const fallbackTitle = `${cleanBase} (${Date.now().toString().slice(-4)})`;
+      const fallbackRaw = replaceOrPrependTitleInRawText(rawText, fallbackTitle);
+      return {
+        title: fallbackTitle,
+        rawText: fallbackRaw,
+        identityKey: getSongIdentityKey(fallbackTitle, artist, fallbackRaw, lang)
+      };
+    }
+
+    function getPreviewDisambiguatedTitle(baseTitle, artist, rawText, lang) {
+      return generateDisambiguatedTitleAndRaw(baseTitle, artist, rawText, lang, state.songs).title;
+    }
+
+    // 取り込み前の事前チェック（新規・完全一致・同名異内容の衝突を分類）
+    function inspectIncomingSongs(incomingSongs, { excludeSongId = null } = {}) {
       const normalizeBody = (s) => String(s || '').replace(/\r\n/g, '\n').trim();
+      const virtualSongs = state.songs
+        .filter(s => !excludeSongId || s.id !== excludeSongId)
+        .map(s => ({ ...s }));
+
+      const validItems = [];
+      const newItems = [];
+      const identicalItems = [];
+      const conflicts = [];
 
       incomingSongs.forEach((inc) => {
         if (!inc || typeof inc.rawText !== 'string' || !inc.rawText.trim()) return;
@@ -3487,30 +3601,95 @@ sim nido mot kkaseo balbyeongnanda
         const artist = String(inc.artist || parsed.detectedArtist || '').trim();
         const url = String(inc.url || parsed.detectedUrl || '').trim();
         const rawText = normalizeBody(inc.rawText);
-        const identityKey = getSongIdentityKey(title, artist, rawText);
+        const lang = parsed.detectedLang;
+        const identityKey = getSongIdentityKey(title, artist, rawText, lang);
 
-        const existingIdx = state.songs.findIndex(s =>
-          (inc.id && s.id === inc.id) ||
+        const normalizedItem = {
+          id: inc.id ? String(inc.id) : '',
+          title,
+          artist,
+          url,
+          rawText,
+          lang,
+          identityKey,
+          updatedAt: Number(inc.updatedAt) || Date.now()
+        };
+        validItems.push(normalizedItem);
+
+        const existing = virtualSongs.find(s =>
           getSongIdentityKey(s.title, s.artist, s.rawText) === identityKey
         );
 
-        state.deletedIds.delete(identityKey);
-        if (inc.id) state.deletedIds.delete(inc.id);
+        if (existing) {
+          if (isSameSongContent(existing, normalizedItem)) {
+            identicalItems.push(normalizedItem);
+          } else {
+            conflicts.push({
+              ...normalizedItem,
+              existingId: existing.id,
+              existingTitle: existing.title,
+              existingArtist: existing.artist
+            });
+          }
+        } else {
+          newItems.push(normalizedItem);
+          virtualSongs.push(normalizedItem);
+        }
+      });
+
+      return { validItems, newItems, identicalItems, conflicts };
+    }
+
+    // 複数曲を既存ライブラリへ重複排除・衝突解決ポリシー（keep-both / overwrite / skip）つきで統合
+    function mergeSongsIntoLibrary(incomingSongs, { conflictPolicy = 'overwrite' } = {}) {
+      let added = 0;
+      let updated = 0;
+      let skipped = 0;
+      let renamed = 0;
+      let firstTargetId = '';
+      const normalizeBody = (s) => String(s || '').replace(/\r\n/g, '\n').trim();
+
+      incomingSongs.forEach((inc) => {
+        if (!inc || typeof inc.rawText !== 'string' || !inc.rawText.trim()) return;
+        const parsed = parseLyricsMaterial(inc.rawText);
+        if (parsed.lines.length === 0) return;
+
+        let title = String(inc.title || parsed.detectedTitle || parsed.lines[0].plainSentence.slice(0, 18) || '無題のテキスト').trim();
+        const artist = String(inc.artist || parsed.detectedArtist || '').trim();
+        const url = String(inc.url || parsed.detectedUrl || '').trim();
+        let rawText = normalizeBody(inc.rawText);
+        const lang = parsed.detectedLang;
+        let identityKey = getSongIdentityKey(title, artist, rawText, lang);
+        let isRenamedItem = false;
+
+        const existingIdx = state.songs.findIndex(s =>
+          getSongIdentityKey(s.title, s.artist, s.rawText) === identityKey
+        );
 
         if (existingIdx !== -1) {
           const existing = state.songs[existingIdx];
-          state.deletedIds.delete(existing.id);
-          if (!firstTargetId) firstTargetId = existing.id;
 
-          if (normalizeBody(existing.rawText) === rawText) {
+          // 1) 内容まで完全に同一なら無条件でスキップ
+          if (isSameSongContent(existing, { title, artist, url, rawText })) {
+            state.deletedIds.delete(identityKey);
+            state.deletedIds.delete(existing.id);
+            if (!firstTargetId) firstTargetId = existing.id;
             if (!existing.url && url) existing.url = url;
             if (!existing.artist && artist) existing.artist = artist;
             skipped++;
             return;
           }
 
-          const incTime = Number(inc.updatedAt) || Date.now();
-          if (preferIncoming || incTime >= (existing.updatedAt || 0)) {
+          // 2) 同名で内容が異なる（衝突）場合、conflictPolicy に従う
+          if (conflictPolicy === 'skip') {
+            skipped++;
+            return;
+          }
+
+          if (conflictPolicy === 'overwrite') {
+            state.deletedIds.delete(identityKey);
+            state.deletedIds.delete(existing.id);
+            if (!firstTargetId) firstTargetId = existing.id;
             state.songs[existingIdx] = {
               ...existing,
               title,
@@ -3520,39 +3699,202 @@ sim nido mot kkaseo balbyeongnanda
               updatedAt: Date.now()
             };
             updated++;
-          } else {
-            skipped++;
+            return;
           }
-        } else {
-          let newId = inc.id ? String(inc.id) : generateDeterministicSongId(title, artist, rawText);
-          if (state.songs.some(s => s.id === newId)) {
-            newId = `${newId}_${Math.random().toString(36).slice(2, 5)}`;
-          }
-          state.deletedIds.delete(newId);
-          if (!firstTargetId) firstTargetId = newId;
 
-          state.songs.push({
-            id: newId,
-            title,
-            artist,
-            url,
-            rawText,
-            updatedAt: Number(inc.updatedAt) || Date.now()
-          });
-          added++;
+          // conflictPolicy === 'keep-both'（別名にして両方残す）
+          const disambiguated = generateDisambiguatedTitleAndRaw(title, artist, rawText, lang, state.songs);
+          title = disambiguated.title;
+          rawText = disambiguated.rawText;
+          identityKey = disambiguated.identityKey;
+          isRenamedItem = true;
+          renamed++;
         }
+
+        state.deletedIds.delete(identityKey);
+        let newId = (inc.id && !isRenamedItem && !state.songs.some(s => s.id === String(inc.id)))
+          ? String(inc.id)
+          : generateDeterministicSongId(title, artist, rawText);
+        if (state.songs.some(s => s.id === newId)) {
+          newId = `${newId}_${Math.random().toString(36).slice(2, 5)}`;
+        }
+        state.deletedIds.delete(newId);
+        if (!firstTargetId) firstTargetId = newId;
+
+        state.songs.push({
+          id: newId,
+          title,
+          artist,
+          url,
+          rawText,
+          updatedAt: Number(inc.updatedAt) || Date.now()
+        });
+        added++;
       });
 
       state.songs.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-      return { added, updated, skipped, firstTargetId };
+      return { added, updated, skipped, renamed, firstTargetId };
     }
 
-    function formatMergeSummary({ added, updated, skipped }) {
+    function formatMergeSummary({ added, updated, skipped, renamed = 0 }) {
       const parts = [];
-      if (added > 0) parts.push(`${added}件を追加`);
-      if (updated > 0) parts.push(`${updated}件を更新`);
-      if (skipped > 0) parts.push(`${skipped}件は同一内容のためスキップ`);
+      if (added > 0) {
+        if (renamed > 0 && renamed === added) {
+          parts.push(`${added}件を別名で追加`);
+        } else if (renamed > 0) {
+          parts.push(`${added}件を追加（うち${renamed}件を別名保存）`);
+        } else {
+          parts.push(`${added}件を追加`);
+        }
+      }
+      if (updated > 0) parts.push(`${updated}件を上書き更新`);
+      if (skipped > 0) parts.push(`${skipped}件はスキップ`);
       return parts.join('・') || '変更はありませんでした';
+    }
+
+    function openConflictDialog({ items, conflicts, newCount = 0, returnSheetId = null, sourceType = 'import', editingSongId = null }) {
+      state.pendingConflict = { items, conflicts, newCount, returnSheetId, sourceType, editingSongId };
+
+      const msgEl = document.getElementById('conflictMessage');
+      const listEl = document.getElementById('conflictList');
+      const btnKeepBoth = document.getElementById('btnConflictKeepBoth');
+      const btnOverwrite = document.getElementById('btnConflictOverwrite');
+      const btnSkip = document.getElementById('btnConflictSkip');
+
+      if (items.length === 1 && conflicts.length === 1) {
+        const c = conflicts[0];
+        msgEl.textContent = `「${c.title}」は、既に同じタイトルで異なる内容が登録されています。どのように保存しますか？`;
+        if (btnKeepBoth) btnKeepBoth.textContent = `別名（${getPreviewDisambiguatedTitle(c.title, c.artist, c.rawText, c.lang)}）にして両方残す`;
+        if (btnOverwrite) btnOverwrite.textContent = '既存のデータを新しい内容で上書き';
+        if (btnSkip) btnSkip.hidden = true;
+      } else {
+        msgEl.textContent = `取り込む${items.length}件のうち、${conflicts.length}件は既に同じタイトルで異なる内容が登録されています。どのように処理しますか？`;
+        if (btnKeepBoth) btnKeepBoth.textContent = `重複する${conflicts.length}件を別名（(2)など）にして全て残す`;
+        if (btnOverwrite) btnOverwrite.textContent = `重複する${conflicts.length}件を新しい内容で上書き`;
+        if (btnSkip) {
+          btnSkip.hidden = false;
+          btnSkip.textContent = newCount > 0
+            ? `重複する${conflicts.length}件はスキップ（新規${newCount}件のみ追加）`
+            : `重複する${conflicts.length}件をスキップ（追加しない）`;
+        }
+      }
+
+      if (listEl) {
+        const previewList = conflicts.slice(0, 6);
+        const restCount = conflicts.length - previewList.length;
+        listEl.innerHTML = previewList.map(c => {
+          const badge = getLangConfig(c.lang).badge;
+          return `
+            <div class="conflict-item">
+              <span class="lang-badge">${badge}</span>
+              <div class="conflict-item-info">
+                <span class="conflict-name">${escapeHtml(c.title)}</span>
+                ${c.artist ? `<span class="conflict-sub">（${escapeHtml(c.artist)}）</span>` : ''}
+              </div>
+            </div>
+          `;
+        }).join('') + (restCount > 0 ? `<div class="conflict-sub" style="padding-left:32px;">ほか ${restCount}件</div>` : '');
+      }
+
+      openSheet('conflictSheet');
+    }
+
+    function resolveConflictWithPolicy(policy) {
+      const pending = state.pendingConflict;
+      state.pendingConflict = null;
+      if (!pending) {
+        closeSheet('conflictSheet');
+        return;
+      }
+
+      // 既存データの編集時に他のデータと同じタイトルに変更して衝突した場合
+      if (pending.editingSongId && pending.items.length === 1) {
+        const item = pending.items[0];
+        const editIdx = state.songs.findIndex(s => s.id === pending.editingSongId);
+        if (editIdx !== -1) {
+          if (policy === 'keep-both') {
+            const others = state.songs.filter(s => s.id !== pending.editingSongId);
+            const disambiguated = generateDisambiguatedTitleAndRaw(item.title, item.artist, item.rawText, item.lang, others);
+            state.songs[editIdx] = {
+              ...state.songs[editIdx],
+              title: disambiguated.title,
+              artist: item.artist,
+              url: item.url,
+              rawText: disambiguated.rawText,
+              updatedAt: Date.now()
+            };
+            state.currentSongId = state.songs[editIdx].id;
+            const saved = saveLibraryToStorage();
+            loadCurrentSong();
+            closeSheet('conflictSheet');
+            if (saved) showToast('別名で変更を保存しました', disambiguated.title);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+          } else if (policy === 'overwrite') {
+            const conflictTargetId = pending.conflicts[0]?.existingId;
+            const targetIdx = state.songs.findIndex(s => s.id === conflictTargetId);
+            if (targetIdx !== -1 && targetIdx !== editIdx) {
+              const updatedText = replaceOrPrependTitleInRawText(item.rawText, item.title);
+              state.songs[targetIdx] = {
+                ...state.songs[targetIdx],
+                title: item.title,
+                artist: item.artist || state.songs[targetIdx].artist,
+                url: item.url || state.songs[targetIdx].url,
+                rawText: updatedText,
+                updatedAt: Date.now()
+              };
+              const targetId = state.songs[targetIdx].id;
+              state.songs.splice(editIdx, 1);
+              state.currentSongId = targetId;
+              const saved = saveLibraryToStorage();
+              loadCurrentSong();
+              closeSheet('conflictSheet');
+              if (saved) showToast('既存のテキストを上書き更新しました', item.title);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+              return;
+            }
+          }
+        }
+      }
+
+      const result = mergeSongsIntoLibrary(pending.items, { conflictPolicy: policy });
+      if (result.firstTargetId) state.currentSongId = result.firstTargetId;
+      const saved = saveLibraryToStorage();
+      loadCurrentSong();
+      renderLibraryList();
+
+      if (pending.sourceType === 'json-file' && pending.returnSheetId === 'songsSheet') {
+        openSheet('songsSheet');
+      } else {
+        closeSheet('conflictSheet');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      if (saved) {
+        if (pending.items.length === 1) {
+          const activeSong = state.songs.find(s => s.id === state.currentSongId);
+          const displayTitle = activeSong ? activeSong.title : pending.items[0].title;
+          if (result.renamed > 0) {
+            showToast('別名でテキストを追加しました', displayTitle);
+          } else if (result.updated > 0) {
+            showToast('既存のテキストを上書き更新しました', displayTitle);
+          } else {
+            showToast('新しいテキストを追加しました', displayTitle);
+          }
+        } else {
+          showToast(`データを取り込みました（計${pending.items.length}件）`, formatMergeSummary(result));
+        }
+      }
+    }
+
+    function cancelConflictResolution() {
+      const pending = state.pendingConflict;
+      state.pendingConflict = null;
+      if (pending && pending.returnSheetId) {
+        openSheet(pending.returnSheetId);
+      } else {
+        closeSheet('conflictSheet');
+      }
     }
 
     async function copyTextSafe(text) {
@@ -3837,8 +4179,14 @@ sim nido mot kkaseo balbyeongnanda
         if (btnSave) btnSave.textContent = detection.songs.length >= 2 ? `${detection.songs.length}件を一括追加` : '保存して開く';
         const previewTitles = detection.songs.slice(0, 3).map(s => `「${s.title || '無題'}」`).join('');
         const more = detection.songs.length > 3 ? ` ほか` : '';
-        statusEl.textContent = `✓ ${detection.songs.length}件のデータ（${previewTitles}${more}）を検出しました。重複データは自動で統合されます`;
-        statusEl.className = 'parse-status ok';
+        const inspection = inspectIncomingSongs(detection.songs);
+        if (inspection.conflicts.length > 0) {
+          statusEl.textContent = `⚠ ${detection.songs.length}件中 ${inspection.conflicts.length}件は同じタイトルの別内容データが登録済みです（追加時に「別名で両方残す」「上書き」「スキップ」を選べます）`;
+          statusEl.className = 'parse-status warn';
+        } else {
+          statusEl.textContent = `✓ ${detection.songs.length}件のデータ（${previewTitles}${more}）を検出しました`;
+          statusEl.className = 'parse-status ok';
+        }
         return;
       }
 
@@ -3862,21 +4210,25 @@ sim nido mot kkaseo balbyeongnanda
         const modeLabel = getLangConfig(parsed.detectedLang).editorLabel;
         const effTitle = titleInput.value.trim() || parsed.detectedTitle || parsed.lines[0].plainSentence.slice(0, 18);
         const effArtist = artistInput.value.trim() || parsed.detectedArtist || '';
-        const key = getSongIdentityKey(effTitle, effArtist, raw);
-        const dupSong = !state.editingSongId
-          ? state.songs.find(s => getSongIdentityKey(s.title, s.artist, s.rawText) === key)
-          : null;
+        const key = getSongIdentityKey(effTitle, effArtist, raw, parsed.detectedLang);
+        const dupSong = state.songs.find(s =>
+          (!state.editingSongId || s.id !== state.editingSongId) &&
+          getSongIdentityKey(s.title, s.artist, s.rawText) === key
+        );
 
         if (dupSong) {
-          const isSameBody = String(dupSong.rawText || '').replace(/\r\n/g, '\n').trim() === raw.replace(/\r\n/g, '\n').trim();
-          const dupHint = isSameBody
-            ? `※「${dupSong.title}」は同じ内容で登録済みです`
-            : `※既存の「${dupSong.title}」を上書き更新します（別データとして残す場合はタイトルを変更）`;
-          statusEl.textContent = `✓ ${parsed.lines.length}行・${vocabCount}個の解説（${modeLabel}） ${dupHint}`;
+          const isSameBody = isSameSongContent(dupSong, { title: effTitle, artist: effArtist, url: urlInput.value.trim(), rawText: raw });
+          if (isSameBody) {
+            statusEl.textContent = `✓ ${parsed.lines.length}行・${vocabCount}個の解説（${modeLabel}） ※「${dupSong.title}」は同じ内容で登録済みです`;
+            statusEl.className = 'parse-status ok';
+          } else {
+            statusEl.textContent = `⚠ 同じタイトル「${dupSong.title}」が既に登録されています（保存時に「別名で両方残す」か「上書き」を選べます）`;
+            statusEl.className = 'parse-status warn';
+          }
         } else {
           statusEl.textContent = `✓ ${parsed.lines.length}行のテキスト・${vocabCount}個の解説を検出（${modeLabel}）`;
+          statusEl.className = 'parse-status ok';
         }
-        statusEl.className = 'parse-status ok';
       } else {
         statusEl.textContent = '※「文字(読み)」形式の行がまだ検出されていません';
         statusEl.className = 'parse-status err';
@@ -3902,7 +4254,18 @@ sim nido mot kkaseo balbyeongnanda
 
       // 複数テキストまとめペーストまたはJSONペースト時の一括統合
       if (!state.editingSongId && (detection.mode === 'json' || detection.mode === 'multi-text') && detection.songs.length >= 2) {
-        const result = mergeSongsIntoLibrary(detection.songs, { preferIncoming: true });
+        const inspection = inspectIncomingSongs(detection.songs);
+        if (inspection.conflicts.length > 0) {
+          openConflictDialog({
+            items: detection.songs,
+            conflicts: inspection.conflicts,
+            newCount: inspection.newItems.length,
+            returnSheetId: 'editorSheet',
+            sourceType: 'multi-editor'
+          });
+          return;
+        }
+        const result = mergeSongsIntoLibrary(detection.songs, { conflictPolicy: 'overwrite' });
         if (result.firstTargetId) state.currentSongId = result.firstTargetId;
         const saved = saveLibraryToStorage();
         loadCurrentSong();
@@ -3919,6 +4282,21 @@ sim nido mot kkaseo balbyeongnanda
       let url = document.getElementById('songUrlInput').value.trim() || singleItem.url || parsed.detectedUrl;
       if (!title) title = parsed.lines[0].plainSentence.slice(0, 18);
 
+      const candidateItems = [{ title, artist, url, rawText: singleItem.rawText }];
+      const inspection = inspectIncomingSongs(candidateItems, { excludeSongId: state.editingSongId });
+
+      if (inspection.conflicts.length > 0) {
+        openConflictDialog({
+          items: candidateItems,
+          conflicts: inspection.conflicts,
+          newCount: inspection.newItems.length,
+          returnSheetId: 'editorSheet',
+          sourceType: 'single-editor',
+          editingSongId: state.editingSongId
+        });
+        return;
+      }
+
       if (state.editingSongId) {
         const idx = state.songs.findIndex(s => s.id === state.editingSongId);
         if (idx !== -1) {
@@ -3933,15 +4311,13 @@ sim nido mot kkaseo balbyeongnanda
         closeSheet('editorSheet');
         if (saved) showToast('変更を保存しました', title);
       } else {
-        const result = mergeSongsIntoLibrary([{ title, artist, url, rawText: singleItem.rawText }], { preferIncoming: true });
+        const result = mergeSongsIntoLibrary(candidateItems, { conflictPolicy: 'overwrite' });
         if (result.firstTargetId) state.currentSongId = result.firstTargetId;
         const saved = saveLibraryToStorage();
         loadCurrentSong();
         closeSheet('editorSheet');
         if (saved) {
-          if (result.updated > 0) {
-            showToast('既存のテキストを上書き更新しました', title);
-          } else if (result.skipped > 0) {
+          if (result.skipped > 0) {
             showToast('既に同じ内容で登録されています', title);
           } else {
             showToast('新しいテキストを追加しました', title);
@@ -4009,9 +4385,20 @@ sim nido mot kkaseo balbyeongnanda
             showToast('有効なテキストデータが見つかりませんでした');
             return;
           }
-          // JSONバックアップ読込時はupdatedAtが新しい方を優先、テキスト読込時は読み込んだ側を優先
-          const preferIncoming = detection.mode !== 'json';
-          const result = mergeSongsIntoLibrary(detection.songs, { preferIncoming });
+
+          const inspection = inspectIncomingSongs(detection.songs);
+          if (inspection.conflicts.length > 0) {
+            openConflictDialog({
+              items: detection.songs,
+              conflicts: inspection.conflicts,
+              newCount: inspection.newItems.length,
+              returnSheetId: activeSheetId || 'songsSheet',
+              sourceType: 'json-file'
+            });
+            return;
+          }
+
+          const result = mergeSongsIntoLibrary(detection.songs, { conflictPolicy: 'overwrite' });
           if (result.firstTargetId) state.currentSongId = result.firstTargetId;
           const saved = saveLibraryToStorage();
           loadCurrentSong();
@@ -4578,6 +4965,12 @@ ${targetSection}`;
           case 'confirm-delete':
             confirmDeleteSong();
             break;
+          case 'resolve-conflict':
+            resolveConflictWithPolicy(actEl.dataset.policy || 'keep-both');
+            break;
+          case 'cancel-conflict':
+            cancelConflictResolution();
+            break;
           case 'export-html':
             exportSelfContainedHtml();
             break;
@@ -4773,7 +5166,11 @@ ${targetSection}`;
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && activeSheetId) {
           e.preventDefault();
-          closeSheet();
+          if (activeSheetId === 'conflictSheet') {
+            cancelConflictResolution();
+          } else {
+            closeSheet();
+          }
           return;
         }
         if (activeSheetId) return;
