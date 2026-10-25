@@ -623,6 +623,10 @@
     .song-row .m { font-size: 12px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .song-row .info { min-width: 0; flex: 1; }
     .song-row .icon-btn.danger:hover { color: var(--danger); background: var(--danger-soft); }
+    @media (max-width: 420px) {
+      .song-row { gap: 2px; }
+      .song-row .icon-btn.sm { width: 30px; height: 30px; }
+    }
     .song-check {
       display: inline-flex; align-items: center; justify-content: center;
       width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0;
@@ -685,6 +689,7 @@
     <symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M1 1l22 22"/><path d="M16.72 11.06A10.94 10.94 0 0119 12.55M5 12.55a10.94 10.94 0 015.17-2.39M10.71 5.05A16 16 0 0122.58 9M1.42 9a15.91 15.91 0 014.7-2.88M8.53 16.11a6 6 0 016.95 0M12 20h.01"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
     <symbol id="i-clipboard" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98"/></symbol>
   </svg>
 
   <!-- ======================================================================
@@ -885,6 +890,13 @@
               <span class="sub">1件だけLINE等で共有するときに便利</span>
             </span>
           </button>
+          <button type="button" class="menu-item" data-action="share-current-song" data-share-support="text" hidden>
+            <svg class="icon"><use href="#i-share"/></svg>
+            <span>
+              このテキストを共有
+              <span class="sub">OSの共有シートでLINE・メモ帳等へ直接送る</span>
+            </span>
+          </button>
 
           <div class="menu-sep"></div>
 
@@ -940,7 +952,10 @@
               <div class="title">JSONバックアップ</div>
               <div class="desc">テキストデータの書き出し・読み込み（既存データに統合）</div>
             </div>
-            <div style="display:flex; gap:6px; flex-shrink:0;">
+            <div style="display:flex; flex-wrap:wrap; gap:6px; flex-shrink:0;">
+              <button type="button" class="btn sm" data-action="share-json" data-share-support="file" hidden>
+                <svg class="icon sm"><use href="#i-share"/></svg>共有
+              </button>
               <button type="button" class="btn sm" data-action="export-json">書き出し</button>
               <label class="btn sm" style="cursor:pointer;">
                 読み込み
@@ -954,9 +969,14 @@
               <div class="title">データ込みHTMLを保存</div>
               <div class="desc">全データを埋め込んだ単一HTMLを保存します。</div>
             </div>
-            <button type="button" class="btn sm primary" data-action="export-html">
-              <svg class="icon sm"><use href="#i-download"/></svg>HTML保存
-            </button>
+            <div style="display:flex; flex-wrap:wrap; gap:6px; flex-shrink:0;">
+              <button type="button" class="btn sm" data-action="share-html" data-share-support="file" hidden>
+                <svg class="icon sm"><use href="#i-share"/></svg>共有
+              </button>
+              <button type="button" class="btn sm primary" data-action="export-html">
+                <svg class="icon sm"><use href="#i-download"/></svg>HTML保存
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -969,6 +989,10 @@
       <div id="songsFootSelect" class="sheet-foot" hidden>
         <button type="button" class="btn ghost" data-action="toggle-select-mode">キャンセル</button>
         <div class="spacer"></div>
+        <button type="button" id="btnShareSelectedJson" class="btn" data-action="share-selected-json" data-share-support="file" hidden>
+          <svg class="icon sm"><use href="#i-share"/></svg>
+          <span id="shareSelectedLabel">共有</span>
+        </button>
         <button type="button" id="btnExportSelectedJson" class="btn primary" data-action="export-selected-json">
           <svg class="icon sm"><use href="#i-download"/></svg>
           <span id="exportSelectedLabel">選択したテキストをJSON保存</span>
@@ -1078,7 +1102,12 @@
         </div>
 
         <div class="field">
-          <label for="promptPreviewBox">3. 生成されたプロンプト</label>
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+            <label for="promptPreviewBox" style="margin:0;">3. 生成されたプロンプト</label>
+            <button type="button" class="btn sm" data-action="share-prompt" data-share-support="text" hidden style="height:28px; padding:0 10px;" title="OSの共有シートで他アプリへ送る">
+              <svg class="icon sm"><use href="#i-share"/></svg>共有
+            </button>
+          </div>
           <textarea id="promptPreviewBox" class="textarea" rows="8" readonly></textarea>
         </div>
       </div>
@@ -3220,6 +3249,10 @@ sim nido mot kkaseo balbyeongnanda
       const footSelect = document.getElementById('songsFootSelect');
       const exportSelectedLabel = document.getElementById('exportSelectedLabel');
       const btnExportSelectedJson = document.getElementById('btnExportSelectedJson');
+      const shareSelectedLabel = document.getElementById('shareSelectedLabel');
+      const btnShareSelectedJson = document.getElementById('btnShareSelectedJson');
+      const fileShareAvailable = canShareFiles();
+      const textShareAvailable = canShareText();
 
       // 削除された曲が選択セットに残らないよう同期
       const validIds = new Set(state.songs.map(s => s.id));
@@ -3237,8 +3270,19 @@ sim nido mot kkaseo balbyeongnanda
         if (btnToggleSelect) btnToggleSelect.textContent = '完了';
         if (footNormal) footNormal.hidden = true;
         if (footSelect) footSelect.hidden = false;
-        if (exportSelectedLabel) exportSelectedLabel.textContent = selCount > 0 ? `選択した${selCount}件をJSON保存` : '選択したテキストをJSON保存';
+        if (exportSelectedLabel) {
+          exportSelectedLabel.textContent = fileShareAvailable
+            ? (selCount > 0 ? `${selCount}件をJSON保存` : 'JSON保存')
+            : (selCount > 0 ? `選択した${selCount}件をJSON保存` : '選択したテキストをJSON保存');
+        }
         if (btnExportSelectedJson) btnExportSelectedJson.disabled = selCount === 0;
+        if (shareSelectedLabel) {
+          shareSelectedLabel.textContent = selCount > 0 ? `${selCount}件を共有` : '共有';
+        }
+        if (btnShareSelectedJson) {
+          btnShareSelectedJson.hidden = !fileShareAvailable;
+          btnShareSelectedJson.disabled = selCount === 0;
+        }
       } else {
         if (toolbarLabel) toolbarLabel.textContent = `登録テキスト一覧（全${state.songs.length}件）`;
         if (btnSelectAll) btnSelectAll.hidden = true;
@@ -3284,6 +3328,11 @@ sim nido mot kkaseo balbyeongnanda
                 <div class="m">${escapeHtml(song.artist || '出典・著者未設定')} • ${summary.lineCount}行</div>
               </span>
             </button>
+            ${textShareAvailable ? `
+            <button type="button" class="icon-btn sm" data-action="share-song" data-id="${escapeHtml(song.id)}" title="テキストを共有" aria-label="共有">
+              <svg class="icon sm"><use href="#i-share"/></svg>
+            </button>
+            ` : ''}
             <button type="button" class="icon-btn sm" data-action="copy-song" data-id="${escapeHtml(song.id)}" title="テキストをコピー" aria-label="コピー">
               <svg class="icon sm"><use href="#i-copy"/></svg>
             </button>
@@ -3526,8 +3575,105 @@ sim nido mot kkaseo balbyeongnanda
       return copied;
     }
 
-    // クリーンなHTMLを書き出す（開いているモーダルや一時DOMが混入しない・オフライン時の非ブロッキング読み込みも維持）
-    function exportSelfContainedHtml() {
+    // ============================================================================
+    // Web Share API（OS標準の共有シート連携）ヘルパー
+    // ============================================================================
+    let cachedCanShareFiles = null;
+    let isSharingInProgress = false;
+
+    function canShareText() {
+      return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+    }
+
+    function canShareFiles() {
+      if (cachedCanShareFiles !== null) return cachedCanShareFiles;
+      if (!canShareText() || typeof navigator.canShare !== 'function' || typeof File !== 'function') {
+        cachedCanShareFiles = false;
+        return false;
+      }
+      try {
+        const jsonTest = new File(['{}'], 'test.json', { type: 'application/json' });
+        if (navigator.canShare({ files: [jsonTest] })) {
+          cachedCanShareFiles = true;
+          return true;
+        }
+        const txtTest = new File(['test'], 'test.txt', { type: 'text/plain' });
+        cachedCanShareFiles = Boolean(navigator.canShare({ files: [txtTest] }));
+        return cachedCanShareFiles;
+      } catch (e) {
+        cachedCanShareFiles = false;
+        return false;
+      }
+    }
+
+    function initWebShareUI() {
+      const textSupported = canShareText();
+      const fileSupported = canShareFiles();
+      document.querySelectorAll('[data-share-support="text"]').forEach(el => {
+        el.hidden = !textSupported;
+      });
+      document.querySelectorAll('[data-share-support="file"]').forEach(el => {
+        el.hidden = !fileSupported;
+      });
+    }
+
+    async function shareTextSafe({ title = '', text = '' } = {}) {
+      if (!canShareText() || !text) return 'failed';
+      if (isSharingInProgress) return 'aborted';
+      isSharingInProgress = true;
+      try {
+        const shareData = title ? { title, text } : { text };
+        await navigator.share(shareData);
+        return 'shared';
+      } catch (err) {
+        if (err && (err.name === 'AbortError' || err.name === 'InvalidStateError')) {
+          return 'aborted';
+        }
+        return 'failed';
+      } finally {
+        isSharingInProgress = false;
+      }
+    }
+
+    async function shareFileSafe({ content, filename, mimeType = 'text/plain', title = '' } = {}) {
+      if (!canShareFiles() || !content || !filename) return 'failed';
+      if (isSharingInProgress) return 'aborted';
+
+      let targetFile = null;
+      try {
+        const primaryFile = new File([content], filename, { type: mimeType });
+        if (navigator.canShare({ files: [primaryFile] })) {
+          targetFile = primaryFile;
+        } else if (mimeType !== 'text/plain') {
+          // OSやブラウザによって application/json や text/html が弾かれる場合は text/plain として再判定
+          const plainFile = new File([content], filename, { type: 'text/plain' });
+          if (navigator.canShare({ files: [plainFile] })) {
+            targetFile = plainFile;
+          }
+        }
+      } catch (e) {
+        return 'failed';
+      }
+
+      if (!targetFile) return 'failed';
+
+      isSharingInProgress = true;
+      try {
+        const shareData = title ? { files: [targetFile], title } : { files: [targetFile] };
+        await navigator.share(shareData);
+        return 'shared';
+      } catch (err) {
+        if (err && (err.name === 'AbortError' || err.name === 'InvalidStateError')) {
+          return 'aborted';
+        }
+        return 'failed';
+      } finally {
+        isSharingInProgress = false;
+      }
+    }
+
+    // クリーンなHTML文字列を生成（開いているモーダルや一時DOMが混入しない・オフライン時の非ブロッキング読み込みも維持）
+    function buildSelfContainedHtmlPayload() {
       const safeJson = JSON.stringify(state.songs, null, 2)
         .replace(/</g, '\\u003c')
         .replace(/>/g, '\\u003e')
@@ -3538,26 +3684,58 @@ sim nido mot kkaseo balbyeongnanda
       const markerRegex = /\/\*__EMBEDDED_LIBRARY_START__\*\/[\s\S]*?\/\*__EMBEDDED_LIBRARY_END__\*\//;
 
       if (!markerRegex.test(CLEAN_BODY_HTML_TEMPLATE)) {
-        showToast('埋め込みマーカーが見つかりません');
-        return;
+        return null;
       }
 
       const cleanHead = document.head.innerHTML.replace(/media="all"\s+onload="this\.media='all'"/g, 'media="print" onload="this.media=\'all\'"');
       const cleanBody = CLEAN_BODY_HTML_TEMPLATE.replace(markerRegex, () => replacementBlock);
       const fullHtml = `<!DOCTYPE html>\n<html lang="ja">\n<head>${cleanHead}</head>\n<body>${cleanBody}</body>\n</html>`;
+      const dateStr = new Date().toISOString().slice(0, 10);
+      return {
+        fullHtml,
+        filename: `ruby_text_player_${dateStr}.html`
+      };
+    }
 
-      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    function exportSelfContainedHtml() {
+      const payload = buildSelfContainedHtmlPayload();
+      if (!payload) {
+        showToast('埋め込みマーカーが見つかりません');
+        return;
+      }
+
+      const blob = new Blob([payload.fullHtml], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const dateStr = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `ruby_text_player_${dateStr}.html`;
+      a.download = payload.filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       showToast('データ込みHTMLを保存しました', `全${state.songs.length}件を内蔵`);
+    }
+
+    async function shareSelfContainedHtml() {
+      const payload = buildSelfContainedHtmlPayload();
+      if (!payload) {
+        showToast('埋め込みマーカーが見つかりません');
+        return;
+      }
+
+      const status = await shareFileSafe({
+        content: payload.fullHtml,
+        filename: payload.filename,
+        mimeType: 'text/html',
+        title: `Ruby Text Player（全${state.songs.length}件内蔵HTML）`
+      });
+
+      if (status === 'shared') {
+        showToast('データ込みHTMLを共有しました', `全${state.songs.length}件を内蔵`);
+      } else if (status === 'failed') {
+        showToast('この環境ではHTMLファイルの直接共有に対応していません', '「HTML保存」をご利用ください');
+      }
     }
 
     function askDeleteSong(songId) {
@@ -3773,14 +3951,22 @@ sim nido mot kkaseo balbyeongnanda
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function exportSongsJsonFile(songsToExport, filePrefix = 'ruby_text_library') {
+    function buildSongsJsonPayload(songsToExport, filePrefix = 'ruby_text_library') {
       const dataStr = JSON.stringify(songsToExport, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
+      const dateStr = new Date().toISOString().slice(0, 10);
+      return {
+        dataStr,
+        filename: `${filePrefix}_${dateStr}.json`
+      };
+    }
+
+    function exportSongsJsonFile(songsToExport, filePrefix = 'ruby_text_library') {
+      const payload = buildSongsJsonPayload(songsToExport, filePrefix);
+      const blob = new Blob([payload.dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      const dateStr = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `${filePrefix}_${dateStr}.json`;
+      a.download = payload.filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -3788,8 +3974,28 @@ sim nido mot kkaseo balbyeongnanda
       showToast('JSONファイルを保存しました', `計${songsToExport.length}件`);
     }
 
+    async function shareSongsJsonFile(songsToExport, filePrefix = 'ruby_text_library') {
+      const payload = buildSongsJsonPayload(songsToExport, filePrefix);
+      const status = await shareFileSafe({
+        content: payload.dataStr,
+        filename: payload.filename,
+        mimeType: 'application/json',
+        title: `Ruby Text Player データ（${songsToExport.length}件）`
+      });
+      if (status === 'shared') {
+        showToast('JSONファイルを共有しました', `計${songsToExport.length}件`);
+      } else if (status === 'failed') {
+        showToast('この環境ではJSONファイルの直接共有に対応していません', '「JSON保存 / 書き出し」をご利用ください');
+      }
+      return status;
+    }
+
     function exportLibraryJson() {
       exportSongsJsonFile(state.songs, 'ruby_text_library');
+    }
+
+    async function shareLibraryJson() {
+      await shareSongsJsonFile(state.songs, 'ruby_text_library');
     }
 
     function importLibraryJson(file) {
@@ -4243,6 +4449,22 @@ ${targetSection}`;
             }
             break;
           }
+          case 'share-current-song': {
+            const song = state.songs.find(s => s.id === state.currentSongId);
+            if (song) {
+              const status = await shareTextSafe({
+                title: song.title || 'Ruby Text Player',
+                text: buildFormattedSongText(song)
+              });
+              if (status === 'shared') {
+                closeSheet();
+                showToast('テキストを共有しました', song.title);
+              } else if (status === 'failed') {
+                showToast('共有できませんでした', '「このテキストをコピー」をご利用ください');
+              }
+            }
+            break;
+          }
           case 'select-song':
             selectSong(actEl.dataset.id);
             closeSheet();
@@ -4284,6 +4506,20 @@ ${targetSection}`;
             renderLibraryList();
             break;
           }
+          case 'share-selected-json': {
+            const selected = state.songs.filter(s => state.selectedSongIds.has(s.id));
+            if (selected.length === 0) {
+              showToast('共有するテキストを選択してください');
+              break;
+            }
+            const status = await shareSongsJsonFile(selected, `ruby_text_selected_${selected.length}items`);
+            if (status === 'shared') {
+              state.isSelectMode = false;
+              state.selectedSongIds.clear();
+              renderLibraryList();
+            }
+            break;
+          }
           case 'paste-clipboard': {
             const rawInput = document.getElementById('rawLyricsInput');
             if (navigator.clipboard && navigator.clipboard.readText) {
@@ -4318,6 +4554,21 @@ ${targetSection}`;
             }
             break;
           }
+          case 'share-song': {
+            const song = state.songs.find(s => s.id === actEl.dataset.id);
+            if (song) {
+              const status = await shareTextSafe({
+                title: song.title || 'Ruby Text Player',
+                text: buildFormattedSongText(song)
+              });
+              if (status === 'shared') {
+                showToast(`「${song.title}」を共有しました`);
+              } else if (status === 'failed') {
+                showToast('共有できませんでした', 'コピーボタンをご利用ください');
+              }
+            }
+            break;
+          }
           case 'edit-song':
             openSongEditor(actEl.dataset.id);
             break;
@@ -4330,8 +4581,14 @@ ${targetSection}`;
           case 'export-html':
             exportSelfContainedHtml();
             break;
+          case 'share-html':
+            await shareSelfContainedHtml();
+            break;
           case 'export-json':
             exportLibraryJson();
+            break;
+          case 'share-json':
+            await shareLibraryJson();
             break;
           case 'fill-sample': {
             const tIn = document.getElementById('songTitleInput');
@@ -4363,6 +4620,19 @@ ${targetSection}`;
               showToast('AIプロンプトをコピーしました', 'GeminiやChatGPTに貼り付けてください');
             } else {
               showToast('コピーに失敗しました');
+            }
+            break;
+          }
+          case 'share-prompt': {
+            const promptText = document.getElementById('promptPreviewBox').value;
+            const status = await shareTextSafe({
+              title: 'Ruby Text Player AI変換プロンプト',
+              text: promptText
+            });
+            if (status === 'shared') {
+              showToast('AIプロンプトを共有しました');
+            } else if (status === 'failed') {
+              showToast('共有できませんでした', '「コピーのみ」をご利用ください');
             }
             break;
           }
@@ -4542,6 +4812,7 @@ ${targetSection}`;
 
     window.addEventListener('DOMContentLoaded', () => {
       loadSettings();
+      initWebShareUI();
       setupEvents();
       initLibrary();
     });
